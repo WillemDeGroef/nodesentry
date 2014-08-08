@@ -77,16 +77,11 @@ module.exports = ( grunt ) ->
             build: ['<%= libDir %>**/*.js']
             docs: ['<%= docDir %>']
 
-        copy:
-            membrane:
-                src: 'res/generic_membrane.js'
-                dest: '<%= libDir %>/res/generic_membrane.js'
-
     require( 'load-grunt-tasks' )( grunt )
 
     define 'lint',          ['coffeelint']
     define 'test',          ['mochacli']
-    define 'build:dev',     ['copy:membrane', 'clean:build', 'lint', 'coffee:build', 'test']
+    define 'build:dev',     ['clean:build', 'lint', 'coffee:build', 'test']
     define 'build',         ['build:dev', 'uglify:build']
     define 'default',       ['build']
 
