@@ -1,9 +1,8 @@
 {
-  "name": "NodeSentry",
+  "name": "nodesentry",
   "description": "Framework for least-privilege integration of libraries",
   "version": "0.0.1",
   "homepage": "https://github.com/WillemDeGroef/nodesentry",
-  "private": true,
   "author": {
     "name": "Willem De Groef",
     "email": "Willem.DeGroef@cs.kuleuven.be",
