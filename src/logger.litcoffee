@@ -1,0 +1,6 @@
+Logging
+=======
+
+    module.exports = () ->
+
+
