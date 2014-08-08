@@ -14,6 +14,24 @@ Install the module via npm: `npm install nodesentry`
 
 Run the tests with `npm test` and take a look at `test/st.test.coffee` for a real-life use case.
 
+## Example
+
+Enable all harmony features when running node: `node --harmony`
+
+    require("nodesentry");
+    var policyObj = {
+        onGet: function (wTgt, name, wRec, dTgt, ret) {
+            console.log("os." + name);
+            return ret;
+        }
+    };
+    var os = safe_require("os", policyObj);
+    console.log(os.uptime());
+    console.log(os.hostname());
+
+The example loads the built-in `os` library and prints the name each time a member is called.
+
+
 ## License
 
 This software is licensed under the **MIT License**. See the [LICENSE](LICENSE) file for more information.
