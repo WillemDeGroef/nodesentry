@@ -42,7 +42,7 @@
     "load-grunt-tasks": "^0.6.0",
     "should": "^4.0.4"
   },
-  "keywords": [],
+  "keywords": ["least-privilege", "security", "web hardening", "access control", "library containment"],
   "dependencies": {
     "harmony-reflect": "^1.0.1",
     "underscore": "^1.6.0"

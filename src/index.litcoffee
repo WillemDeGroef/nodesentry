@@ -29,6 +29,10 @@ object through handlers. In this way, when a membrane revokes a reference,
 essentially by destroying the shadow object~\cite{vancutsem2013}, it instantly
 achieves the goal of transitively revoking all references as advocated by
 Miller~\cite{miller2006}.
+
+
+    harmonyFlagsEnabled = -> "function" == typeof Map
+    throw new Error "NodeSentry requires the harmony flags. (`node --harmony`)" if not harmonyFlagsEnabled()
     
     require "./nodesentry"
 
