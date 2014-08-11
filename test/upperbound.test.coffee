@@ -15,7 +15,6 @@ describe "Upper-bound Policies", () =>
         policyObj = (new Policy()).build()
         policyObj.onGet = (wTgt, name, wRec, dTgt, ret) ->
             funcCall = "#{dTgt.constructor.name.toString()}.#{name}"
-            # add it right before the headers get 
             if funcCall == "ServerResponse.writeHead"
                 dTgt.setHeader "X-NodeSentry", "What Else?!"
             return ret
