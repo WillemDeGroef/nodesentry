@@ -10,6 +10,8 @@ Read the extended abstract at https://lirias.kuleuven.be/bitstream/123456789/458
 
 Install the module via npm: `npm install nodesentry`
 
+Build status: [![Build Status](https://travis-ci.org/WillemDeGroef/nodesentry.svg?branch=master)](https://travis-ci.org/WillemDeGroef/nodesentry)
+
 ## Test Scenario
 
 Run the tests with `npm test` and take a look at `test/st.test.coffee` for a real-life use case.
