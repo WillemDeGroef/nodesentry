@@ -4,9 +4,9 @@ Policy = require "../src/policy"
 
 describe "Module", () ->
     beforeEach () =>
-        @policyObj = (new Policy()).build()
+        @policy = new Policy()
         @module = new Module("../test/circle.js")
-        @module.setPolicy @policyObj
+        @module.setPolicy @policy
 
     it "should return a module object", () =>
         @module.should.be.type "object"
@@ -27,20 +27,17 @@ describe "Module", () ->
         circle.test().should.be.above 1
 
      it "should intercept calls to public API", (done) =>
-        @policyObj.functionCall = (dryTarget, dryThis, dryArgs) ->
-            done()
-            Reflect.apply(dryTarget, dryThis, dryArgs)
+        @policy.on("area").call(-> done())
         m = new Module("../test/circle.js")
-        m.setPolicy @policyObj
+        m.setPolicy @policy.build()
+
         circle = m.loadLibrary()
         circle.area(10).should.be.approximately 314, 1
 
      it "should intercept calls to depending libraries", (done) =>
-        @policyObj.functionCall = (dryTarget, dryThis, dryArgs) ->
-            done()
-            Reflect.apply(dryTarget, dryThis, dryArgs)
+        @policy.on("test").call(-> done())
         @module = new Module("../test/circle.js")
-        @module.setPolicy @policyObj
+        @module.setPolicy @policy.build()
 
         circle = @module.loadLibrary()
         circle.test().should.be.above 1

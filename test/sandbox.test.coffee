@@ -5,7 +5,7 @@ Module = require "../src/module"
 
 describe "Sandbox", () ->
     beforeEach =>
-        @policyObj = (new Policy()).build()
+        @policyObj = new Policy().build()
         @policyObj.mustWrap("os").should.be.false
         @sandbox = new Sandbox(__filename, @policyObj)
 
