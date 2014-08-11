@@ -57,9 +57,7 @@ exported API call within a membrane.
                 return _.object(_.map libexports, f)
 
         buildMembraneWrapper: (libName) =>
-            (propObj, propName) =>
-                name = "#{libName}.#{propName}"
-                [propName, new Membrane(propObj, @policyObj)]
+            (propObj, propName) => [propName, new Membrane(propObj, @policyObj)]
 
         context: => @sandboxedContext ?= @buildContext()
         global: => @glob
