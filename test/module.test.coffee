@@ -27,7 +27,7 @@ describe "Module", () ->
         circle.test().should.be.above 1
 
      it "should intercept calls to public API", (done) =>
-        @policy.on("area").call(-> done())
+        @policy.on("area").do(-> done())
         m = new Module("../test/circle.js")
         m.setPolicy @policy.build()
 
@@ -35,7 +35,7 @@ describe "Module", () ->
         circle.area(10).should.be.approximately 314, 1
 
      it "should intercept calls to depending libraries", (done) =>
-        @policy.on("test").call(-> done())
+        @policy.on("test").do(-> done())
         @module = new Module("../test/circle.js")
         @module.setPolicy @policy.build()
 

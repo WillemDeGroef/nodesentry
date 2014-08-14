@@ -1,10 +1,15 @@
 Policy
 ======
 
+    _ = require "underscore"
+
     class Policy
         constructor: () ->
-            @rules = []
+            @beforeRules = []
+            @afterRules = []
+            @getRules = []
             @libsToWrap = []
+
             @policy =
 
 Indicate if a given library (name) should be wrapped in a separate membrane. If
@@ -12,76 +17,105 @@ a policy doesn't talk about a specific depending library, then it there is no
 need for it to be wrapped. Therefor, the default return value is `false`:
 
                 mustWrap: (libName) -> false
-                onGet: (wTgt, name, wRec, dTgt, ret) -> ret
 
 
         on: (name) ->
             child = new Rule name, this
             # check if (lib, call) = name must be added to libsToWrap
             # iff lib[0].toLowerCase() == lib[0]
-            @rules.push child
+            @getRules.push child
             child
 
+        #FIXME: technically there is a difference: before should be called exactly when a method is _called_
         before: (name) ->
-            child = new Rule name, this
-            @rules.push child
-            child
+            @on name
+
+        after: (name) ->
+            throw new Error "Policy.before not yet implemented"
+
 
 The `build` method generates the whole structure of our semantic model of the membrane object.
 
         build: () =>
             @libsToWrap = []
+
+            strEqual = (fullName) ->
+                (rule) -> fullName.indexOf(rule.apiCall) > -1
+
+            conditionsAreTrue = (dTgt, ret) ->
+                (rule) ->
+                    _.chain(rule.conditions)
+                        .map (cond) -> cond(dTgt, ret) == true
+                        .reduce ((memo, c) -> memo and c), true
+                        .value()
+
+
+            doGetActions = (dTgt, ret) ->
+                (rule) ->
+                    _.chain(rule.actions)
+                        .map (action) -> action(dTgt, ret)
+                    return rule
+
+            calcRetValue = (origRet, rule) -> rule.ret(origRet)
+
             @policy.onGet = (wTgt, name, wRec, dTgt, ret) =>
-                funcCall = "#{dTgt.constructor.name.toString()}.#{name}"
-                ret = rule.action(dTgt, ret) for rule in @rules when funcCall.indexOf(rule.apiCall) > -1 and rule.condition(dTgt, ret)
-                return ret
-                
+                fullName = "#{dTgt.constructor.name.toString()}.#{name}"
+                return _.chain(@getRules)
+                    .filter(strEqual(fullName))
+                    .filter(conditionsAreTrue(dTgt, ret))
+                    .map(doGetActions(dTgt, ret))
+                    .reduce(calcRetValue, ret)
+                    .value()
+
             @policy
 
 
 
     class Rule
         constructor: (@apiCall, @parent) ->
-            @action = (tgt, ret) -> ret
-            @condition = -> true
 
-        call: (f) =>
-            @action = (dTgt, ret) ->
-                f(dTgt, ret)
-                return  ret
+List of actions with side effects [0..n]:
+
+            @actions = []
+
+The default return function [1..1]:
+
+            @ret = (v) -> v
+
+A potential throw message [0..1]:
+            @throw = null
+
+A list of conditions that evaluate to `true` or `false` [1..n]:
+
+            @conditions = [() -> true]
+
+        do: (f) =>
+            @actions.push f
             this
 
         return: (v) =>
-            oldAction = @action
-            @action = (dTgt, ret) ->
-                oldAction?(dTgt, ret)
-                return v
+            @ret = v
             this
 
         throw: (err) =>
-            @action = (dTgt, ret) -> throw new Error err
+            @throw = err
             this
 
         if: (cond) =>
-            @condition = (dtgt, ret) -> cond(dtgt, ret)
+            @conditions.push (dtgt, ret) -> cond(dtgt, ret)
             this
 
-        and: (cond) =>
-            @condition = (dtgt, ret) => @condition(dtgt, ret) && cond(dtgt, ret)
-            this
+        on: (name) => @parent.on name
 
-        or: (cond) =>
-            @condition = (dtgt, ret) => @condition(dtgt, ret) || cond(dtgt, ret)
-            this
+        before: (name) => @parent.before name
+
+        after: (name) => @parent.after name
 
 
-        on: (name) ->
-            return @parent.on name
 
-        before: (name) ->
-            return @parent.before name
 
         build: () ->
             @parent.build()
 
-     module.exports = Policy
+
+    module.exports = Policy

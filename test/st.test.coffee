@@ -10,7 +10,7 @@ describe "`st@0.2.4`", () =>
     min = 1025
     @po = new Policy()
              .on("IncomingMessage.url")
-                .return("/redirect_to_404_page")
+                .return((origUrl) -> "/redirect_to_404_page")
                 .if((dtgt, url) ->
                     url.indexOf("%2e") > -1 or url.indexOf("..") > -1)
             .build()
