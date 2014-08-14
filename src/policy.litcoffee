@@ -5,9 +5,7 @@ Policy
 
     class Policy
         constructor: () ->
-            @beforeRules = []
-            @afterRules = []
-            @getRules = []
+            @rules = []
             @libsToWrap = []
 
             @policy =
@@ -20,18 +18,22 @@ need for it to be wrapped. Therefor, the default return value is `false`:
 
 
         on: (name) ->
-            child = new Rule name, this
+            child = new OnRule name, this
             # check if (lib, call) = name must be added to libsToWrap
             # iff lib[0].toLowerCase() == lib[0]
-            @getRules.push child
+            @rules.push child
             child
 
         #FIXME: technically there is a difference: before should be called exactly when a method is _called_
         before: (name) ->
-            @on name
+            child = new BeforeRule name, this
+            @rules.push child
+            child
 
         after: (name) ->
-            throw new Error "Policy.before not yet implemented"
+            child = new AfterRule name, this
+            @rules.push child
+            child
 
 
 The `build` method generates the whole structure of our semantic model of the membrane object.
@@ -60,7 +62,7 @@ The `build` method generates the whole structure of our semantic model of the me
 
             @policy.onGet = (wTgt, name, wRec, dTgt, ret) =>
                 fullName = "#{dTgt.constructor.name.toString()}.#{name}"
-                return _.chain(@getRules)
+                return _.chain(@rules)
                     .filter(strEqual(fullName))
                     .filter(conditionsAreTrue(dTgt, ret))
                     .map(doGetActions(dTgt, ret))
@@ -106,16 +108,29 @@ A list of conditions that evaluate to `true` or `false` [1..n]:
             this
 
         on: (name) => @parent.on name
-
         before: (name) => @parent.before name
-
         after: (name) => @parent.after name
+        build: () -> @parent.build()
+
+
+    class OnRule extends Rule
+        return: (f) =>
+            super.ret = (v) -> f(v)
+            this
+
+    class AfterRule extends Rule
+        return: (f) =>
+            super.ret = (v) ->
+                (() => return f(v.apply(this,arguments)))
+            this
+
+    class BeforeRule extends Rule
+        return: (f) =>
+            super.ret = (v) -> (() => return f(v).apply(this.arguments))
+            this
 
 
 
-
-        build: () ->
-            @parent.build()
 
 
     module.exports = Policy

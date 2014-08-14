@@ -15,16 +15,36 @@ describe "Policy", =>
         p.onGet({}, "", {}, {}, 1234).should.equal 1234
 
     it "should modify return values", =>
+        @policy.on("PI").return((origPI) -> 3*origPI)
+        p = @policy.build()
+        circle = safe_require "../test/circle.js", p
+        circle.PI.should.approximately 9, 1
+
+    it "should modify return values of functions", =>
         @policy.on("area").return((origArea) -> (r) -> 2*origArea(r))
         p = @policy.build()
         circle = safe_require "../test/circle.js", p
         circle.area(1).should.approximately 6, 1
 
+    it "should modify return values after function calls", =>
+        @policy.after("area").return((origRes) -> 2*origRes)
+        p = @policy.build()
+        circle = safe_require "../test/circle.js", p
+        circle.area(1).should.approximately 6, 1
+
     it "should call external functions", (done) =>
-        @policy.on("area") .do(-> done())
+        @policy.on("area").do(-> done())
         p = @policy.build()
         circle = safe_require "../test/circle.js", p
         circle.area(1).should.be.approximately 3, 1
+
+    it "should call external functions", (done) =>
+        @policy.after("area").do(-> done())
+        p = @policy.build()
+        circle = safe_require "../test/circle.js", p
+        circle.area(1).should.be.approximately 3, 1
+
+
 
 
     it.skip "should throw errors", =>

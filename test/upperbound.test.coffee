@@ -14,8 +14,8 @@ describe "Upper-bound Policies", () =>
     it "can add extra HTTP response headers", (done) =>
         p = new Policy()
             .before("ServerResponse.writeHead")
-                .do((tgt) ->
-                    tgt.setHeader "X-NodeSentry", "What Else?!")
+                .do((response) ->
+                    response.setHeader "X-NodeSentry", "What Else?!")
             .build()
 
         http = safe_require "http", p
