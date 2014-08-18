@@ -1,4 +1,5 @@
 var PI = Math.PI;
+module.exports.PI = PI;
 
 module.exports.area = function (r) {
       return PI * r * r;

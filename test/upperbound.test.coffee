@@ -12,18 +12,18 @@ describe "Upper-bound Policies", () =>
         try @server.close()
 
     it "can add extra HTTP response headers", (done) =>
-        policyObj = (new Policy()).build()
-        policyObj.onGet = (wTgt, name, wRec, dTgt, ret) ->
-            funcCall = "#{dTgt.constructor.name.toString()}.#{name}"
-            if funcCall == "ServerResponse.writeHead"
-                dTgt.setHeader "X-NodeSentry", "What Else?!"
-            return ret
+        p = new Policy()
+            .before("ServerResponse.writeHead")
+                .do((response) ->
+                    response.setHeader "X-NodeSentry", "What Else?!")
+            .build()
 
-        http = safe_require "http", policyObj
+        http = safe_require "http", p
         @server = http.createServer((req, res) ->
             res.writeHead 200, {'Content-Type': 'text/plain'}
             res.end 'Hello World\n'
         ).listen(@port)
+
         http.get "http://localhost:#{@port}/", (res) ->
             res.statusCode.should.equal 200
             res.headers.should.have.property 'x-nodesentry'
