@@ -1,8 +1,7 @@
 # !! be careful as this runs a vulnerable version st !!
 http = require "http"
 should = require "should"
-Policy = require "../src/policy"
-require "../src"
+Policy = require("../src").Policy
 
 describe "`st@0.2.4`", () =>
     @server = null

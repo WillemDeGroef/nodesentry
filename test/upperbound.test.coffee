@@ -1,6 +1,5 @@
 should = require "should"
-Policy = require "../src/policy"
-require "../src"
+Policy = require("../src").Policy
 
 describe "Upper-bound Policies", () =>
     @server = null

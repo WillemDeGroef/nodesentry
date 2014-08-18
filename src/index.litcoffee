@@ -34,6 +34,7 @@ Miller~\cite{miller2006}.
     harmonyFlagsEnabled = -> "function" == typeof Map
     throw new Error "NodeSentry requires the harmony flags. (`node --harmony`)" if not harmonyFlagsEnabled()
     
+    module.exports.Policy = require "./policy"
     require "./nodesentry"
 
 Copyright 2014 -- iMinds-DistriNet, KU Leuven
