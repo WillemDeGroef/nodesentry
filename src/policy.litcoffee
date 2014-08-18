@@ -16,7 +16,6 @@ need for it to be wrapped. Therefor, the default return value is `false`:
 
                 mustWrap: (libName) -> false
 
-
         on: (name) ->
             child = new OnRule name, this
             # check if (lib, call) = name must be added to libsToWrap
@@ -24,7 +23,6 @@ need for it to be wrapped. Therefor, the default return value is `false`:
             @rules.push child
             child
 
-        #FIXME: technically there is a difference: before should be called exactly when a method is _called_
         before: (name) ->
             child = new BeforeRule name, this
             @rules.push child
@@ -35,7 +33,6 @@ need for it to be wrapped. Therefor, the default return value is `false`:
             @rules.push child
             child
 
-
 The `build` method generates the whole structure of our semantic model of the membrane object.
 
         build: () =>
@@ -44,13 +41,15 @@ The `build` method generates the whole structure of our semantic model of the me
             strEqual = (fullName) ->
                 (rule) -> fullName.indexOf(rule.apiCall) > -1
 
+            areType = (t) ->
+                (rule) -> rule instanceof t
+
             conditionsAreTrue = (dTgt, ret) ->
                 (rule) ->
                     _.chain(rule.conditions)
                         .map (cond) -> cond(dTgt, ret) == true
                         .reduce ((memo, c) -> memo and c), true
                         .value()
-
 
             doGetActions = (dTgt, ret) ->
                 (rule) ->
@@ -60,17 +59,40 @@ The `build` method generates the whole structure of our semantic model of the me
 
             calcRetValue = (origRet, rule) -> rule.ret(origRet)
 
+            isEmpty = (l) -> l.size().value() == 0
+            isNotFunction = (v) -> typeof v != "function"
+
             @policy.onGet = (wTgt, name, wRec, dTgt, ret) =>
                 fullName = "#{dTgt.constructor.name.toString()}.#{name}"
-                return _.chain(@rules)
+                relevantRules = _.chain(@rules)
                     .filter(strEqual(fullName))
-                    .filter(conditionsAreTrue(dTgt, ret))
+
+                onRules = relevantRules.filter(areType(OnRule))
+                beforeRules = relevantRules.filter(areType(BeforeRule))
+                afterRules = relevantRules.filter(areType(AfterRule))
+
+                onGetValue = onRules.filter(conditionsAreTrue(dTgt, ret))
                     .map(doGetActions(dTgt, ret))
                     .reduce(calcRetValue, ret)
                     .value()
 
-            @policy
+                hasNoMoreRules = (isEmpty(beforeRules) and isEmpty(afterRules))
 
+                return onGetValue if isNotFunction(onGetValue) or hasNoMoreRules
+
+                return (() ->
+                    beforeRules.filter(conditionsAreTrue(dTgt, ret))
+                       .map(doGetActions(dTgt, ret))
+
+                    r = dTgt[name].apply(this, arguments)
+
+                    afterRules.filter(conditionsAreTrue(dTgt, ret))
+                        .map(doGetActions(dTgt, ret))
+                        .reduce(calcRetValue, r)
+                        .value()
+                )
+
+            @policy
 
 
     class Rule
@@ -84,9 +106,6 @@ The default return function [1..1]:
 
             @ret = (v) -> v
 
-A potential throw message [0..1]:
-            @throw = null
-
 A list of conditions that evaluate to `true` or `false` [1..n]:
 
             @conditions = [() -> true]
@@ -95,12 +114,8 @@ A list of conditions that evaluate to `true` or `false` [1..n]:
             @actions.push f
             this
 
-        return: (v) =>
-            @ret = v
-            this
-
-        throw: (err) =>
-            @throw = err
+        return: (f) =>
+            @ret = (v) -> f.call(this, v)
             this
 
         if: (cond) =>
@@ -114,20 +129,11 @@ A list of conditions that evaluate to `true` or `false` [1..n]:
 
 
     class OnRule extends Rule
-        return: (f) =>
-            super.ret = (v) -> f(v)
-            this
-
     class AfterRule extends Rule
-        return: (f) =>
-            super.ret = (v) ->
-                (() => return f(v.apply(this,arguments)))
-            this
 
     class BeforeRule extends Rule
-        return: (f) =>
-            super.ret = (v) -> (() => return f(v).apply(this.arguments))
-            this
+        return: (f) ->
+            throw new Error "use Policy.on to mimic the required behavior"
 
 
 
