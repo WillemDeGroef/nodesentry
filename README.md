@@ -12,27 +12,40 @@ Install the module via npm: `npm install nodesentry`
 
 Build status: [![Build Status](https://travis-ci.org/WillemDeGroef/nodesentry.svg?branch=master)](https://travis-ci.org/WillemDeGroef/nodesentry)
 
-## Test Scenario
+## Examples
 
-Run the tests with `npm test` and take a look at `test/st.test.coffee` for a real-life use case.
+Two examples showcase the real-life use case of the library.
 
-## Example
+### Adding custom HTTP headers
 
-Enable all harmony features when running node: `node --harmony`
+This example shows how you can add a custom HTTP header to any outgoing HTTP response of your HTTP server.
+Please note that NodeSentry requires you to enable all harmony features of V8/Node.js when running node (use `node --harmony`).
 
-    require("nodesentry");
-    var policyObj = {
-        onGet: function (wTgt, name, wRec, dTgt, ret) {
-            console.log("os." + name);
-            return ret;
-        }
-    };
-    var os = safe_require("os", policyObj);
-    console.log(os.uptime());
-    console.log(os.hostname());
+    /* Enable NodeSentry */
+    var Policy = require("nodesentry").Policy;
 
-The example loads the built-in `os` library and prints the name each time a member is called.
+    /* This policy says that before a call to `ServerResponse.writeHead()` is
+     * actually invoked, a custom header gets added to the response object.
+     * More information on the Node.js API for HTTP server interactions on
+     * http://nodejs.org/api/http.html */
+    var policy = new Policy()
+        .before("ServerResponse.writeHead")
+            .do(function(response) {
+                return response.setHeader("X-NodeSentry", "What Else?!");
+    }).build() // build the actual policy object
 
+    /* Use `safe_require` to enforce generated policy */
+    var http = safe_require("http", policy);
+    //var http = require("http");
+
+    /* Pre-existing/unmodified application code */
+    var port = 12345;
+    var server = http.createServer(function(req, res) {
+        res.writeHead(200, {'Content-Type': 'text/plain'});
+        return res.end('Hello World\n');
+    }).listen(port);
+
+This example is also used in the file `test/upperbound.test.coffee`, as part of our test suite.
 
 ## License
 
