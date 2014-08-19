@@ -3,26 +3,26 @@ Module = require "../src/module"
 Policy = require "../src/policy"
 
 describe "Module", () ->
-    beforeEach () =>
+    beforeEach =>
         @policy = new Policy()
         @module = new Module("../test/circle.js")
         @module.setPolicy @policy
 
-    it "should return a module object", () =>
+    it "should return a module object", =>
         @module.should.be.type "object"
 
-    it "should load the library", () =>
+    it "should load the library", =>
         @module.loadLibrary.should.be.type "function"
 
         publicAPI = @module.loadLibrary()
         publicAPI.should.be.an.Object
         publicAPI.should.have.properties ["area", "circumference"]
 
-    it "should allow calls to public API", () =>
+    it "should allow calls to public API", =>
         circle = @module.loadLibrary()
         circle.area(10).should.be.approximately 314, 1
 
-    it "should allow calls to public API depending on libraries", () =>
+    it "should allow calls to public API depending on libraries", =>
         circle = @module.loadLibrary()
         circle.test().should.be.above 1
 

@@ -35,7 +35,7 @@ describe "`st@0.2.4`", () =>
             done()
 
     it "should be still functional under NodeSentry", (done) =>
-        st = safe_require "../demos/st", {}
+        st = safe_require "../demos/st"
         @server = http.createServer(st(process.cwd())).listen(@port)
         http.get "http://localhost:#{@port}/", (res) ->
             res.statusCode.should.equal 200
