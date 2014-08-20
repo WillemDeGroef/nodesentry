@@ -16,23 +16,15 @@ a membrane (to apply upper-bound policies)
 
     class Module
 
-        constructor: (@libName, @dirName) ->
-            @origRequire = require
-            @origMod = require "module"
+        constructor: (@libName) ->
             @policyObj = {}
-
-            resolvedModule = @origMod._resolveLookupPaths @libName, undefined
-            paths = @origMod._nodeModulePaths(".").concat(resolvedModule[1])
-            @fileName = @origMod._findPath(@libName, paths) if not @isBuiltInModule()
+            @fileName = require.resolve(@libName)
 
         setPolicy: (@policyObj) ->
 
 Return `true` if we know for sure that the requested library is a built-in library.
 
-        isBuiltInModule: () ->
-            ["child_process", "cluster", "crypto", "dns",
-             "domain", "events", "fs", "http", "https", "net",
-             "os", "path", "dgram", "url", "vm"].indexOf(@libName) > -1
+        isBuiltInModule: () -> @fileName.indexOf(".js") == -1
 
 Load the library and return a wrapped version of the original public API:
 

@@ -34,7 +34,27 @@ Miller~\cite{miller2006}.
     harmonyFlagsEnabled = -> "function" == typeof Map
     throw new Error "NodeSentry requires the harmony flags. (`node --harmony`)" if not harmonyFlagsEnabled()
     
+    harmony = require "harmony-reflect"
+    log = require "./logger"
+    Module = require "./module"
+    path = require "path"
+
+    absolutePath = (name) -> name[0] == "/"
+    installedModule = (name) -> not (name.indexOf(".js") > -1)
+    updatePath = (name) -> path.join(path.dirname(module.parent.filename), name)
+
+    global.safe_require = (libName, policyObj) ->
+        # update relative paths
+        libName = updatePath(libName) unless absolutePath(libName) or installedModule(libName)
+        # update search paths for local/global modules
+        module.paths = module.parent.paths
+        if policyObj?
+            m = new Module(libName)
+            m.setPolicy policyObj
+            m.loadLibrary()
+        else
+            require libName
+
     module.exports.Policy = require "./policy"
-    require "./nodesentry"
 
 Copyright 2014 -- iMinds-DistriNet, KU Leuven
