@@ -13,6 +13,9 @@ a membrane (to apply upper-bound policies)
     Sandbox = require "./sandbox"
     Membrane = require "./membrane"
 
+    stripBOM = (content) ->
+        content.slice 1 if content.charCodeAt(0) == 0xFEFF
+        content
 
     class Module
 
@@ -29,9 +32,8 @@ Return `true` if we know for sure that the requested library is a built-in libra
 Load the library and return a wrapped version of the original public API:
 
         loadLibrary: () ->
-
             requireCode = "module.exports = require('#{@libName}');"
-            requireCode = fs.readFileSync(@fileName).toString() unless @isBuiltInModule()
+            requireCode = stripBOM(fs.readFileSync(@fileName, "utf8")).toString() unless @isBuiltInModule()
 
             script = vm.createScript requireCode
 
