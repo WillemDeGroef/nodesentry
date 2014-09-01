@@ -1,6 +1,5 @@
 should = require 'should'
 require "../src"
-Module = require "../src/module"
 Policy = require "../src/policy"
 
 describe "Policy", =>
@@ -20,40 +19,40 @@ describe "Policy", =>
         circle.PI.should.approximately 3, 1
 
     it "should modify return values of functions", =>
-        @policy.on("area").return((origArea) -> ((r) -> 2*origArea(r)))
+        @policy.after("circle.area").return((r) -> 2*r)
         circle = safe_require "./circle.js", @policy.build()
         circle.area(1).should.approximately 6, 1
 
-    it "should modify return values after function calls", =>
-        @policy.after("area").return((origRes) -> 2*origRes)
+    it "should modify return values before function calls", =>
+        @policy.before("circle.area").return((origRes) -> ((r) -> 2*origRes(r)))
         circle = safe_require "./circle.js", @policy.build()
         circle.area(1).should.approximately 6, 1
 
-    it "should call external functions", (done) =>
-        @policy.on("area").do(-> done())
+    it "should call external functions before the actual call", (done) =>
+        @policy.before("circle.area").do(-> done())
         circle = safe_require "./circle.js", @policy.build()
         circle.area(1).should.be.approximately 3, 1
 
-    it "should call external functions (2)", (done) =>
+    it "should call external functions after the actual call", (done) =>
+        @policy.after("circle.area").do(-> done())
+        circle = safe_require "./circle.js", @policy.build()
+        circle.area(1).should.be.approximately 3, 1
+
+    it "should call external functions", (done) =>
         beenHereBefore = false
-        @policy.before("area").do(-> beenHereBefore = true)
-               .after("area").do(-> done() if beenHereBefore)
-        circle = safe_require "./circle.js", @policy.build()
-        circle.area(1).should.be.approximately 3, 1
-
-    it "should call external functions", (done) =>
-        @policy.after("area").do(-> done())
+        @policy.before("circle.area").do(-> beenHereBefore = true)
+               .after("circle.area").do(-> done() if beenHereBefore)
         circle = safe_require "./circle.js", @policy.build()
         circle.area(1).should.be.approximately 3, 1
 
     it "should throw errors", =>
-        @policy.after("area").do(-> throw new Error("this should throw"))
+        @policy.before("circle.area").do(-> throw new Error)
         circle = safe_require "./circle.js", @policy.build()
-        (circle.area).should.throw()
+        (-> circle.area(1)).should.throw()
 
     it "should sequence actions", (done) =>
         beenHereBefore = false
-        @policy.on("area")
+        @policy.after("circle.area")
             .do(-> beenHereBefore = true)
             .do(-> done() if beenHereBefore)
 
@@ -63,8 +62,8 @@ describe "Policy", =>
     it "should sequence rules", (done) =>
         beenHereBefore = false
         @policy
-            .on("area").do(-> beenHereBefore = true)
-            .on("area").do(-> done() if beenHereBefore)
+            .before("circle.area").do(-> beenHereBefore = true)
+            .after("circle.area").do(-> done() if beenHereBefore)
 
         circle = safe_require "./circle.js", @policy.build()
         circle.area(1).should.be.approximately 3, 1

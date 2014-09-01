@@ -51,10 +51,10 @@ The `build` method generates the whole structure of our semantic model of the me
                         .reduce ((memo, c) -> memo and c), true
                         .value()
 
-            doGetActions = (dTgt, ret) ->
+            doGetActions = (dTgt, args...) ->
                 (rule) ->
                     _.chain(rule.actions)
-                        .map (action) -> action(dTgt, ret)
+                        .map (action) -> action.apply(this, [dTgt].concat(args))
                     return rule
 
             calcRetValue = (origRet, rule) -> rule.ret(origRet)
@@ -76,19 +76,24 @@ The `build` method generates the whole structure of our semantic model of the me
                     .reduce(calcRetValue, ret)
                     .value()
 
-                hasNoMoreRules = (isEmpty(beforeRules) and isEmpty(afterRules))
+            @policy.functionCall = (dTgt, dryThis, dryArgs, calcResult, fullName) =>
+                relevantRules = _.chain(@rules).filter(strEqual(fullName))
 
-                return onGetValue if isNotFunction(onGetValue) or hasNoMoreRules
+                beforeRules = relevantRules.filter(areType(BeforeRule))
+                afterRules = relevantRules.filter(areType(AfterRule))
 
-                return (() ->
-                    beforeRules.filter(conditionsAreTrue(dTgt, ret))
-                       .map(doGetActions(dTgt, ret))
+                calcResult = beforeRules.filter(conditionsAreTrue(dTgt))
+                       .map(doGetActions(dTgt, dryArgs, calcResult))
+                       .reduce(calcRetValue, calcResult)
+                       .value()
 
+                # return as function because the generic membrane will invoke it afterwards
+                ->
+                    ret = calcResult()
                     afterRules.filter(conditionsAreTrue(dTgt, ret))
-                        .map(doGetActions(dTgt, ret))
-                        .reduce(calcRetValue, ret.apply(wRec, arguments))
+                        .map(doGetActions(dTgt, dryArgs, ret))
+                        .reduce(calcRetValue, ret)
                         .value()
-                )
 
             @policy
 
@@ -128,10 +133,7 @@ A list of conditions that evaluate to `true` or `false` [1..n]:
 
     class OnRule extends Rule
     class AfterRule extends Rule
-
     class BeforeRule extends Rule
-        return: (f) ->
-            throw new Error "use Policy.on to mimic the required behavior"
 
 
 
