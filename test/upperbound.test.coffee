@@ -12,7 +12,7 @@ describe "Upper-bound Policies", () =>
 
     it "can add extra HTTP response headers", (done) =>
         p = new Policy()
-            .before("ServerResponse.writeHead")
+            .on("ServerResponse.writeHead")
                 .do((response) ->
                     response.setHeader "X-NodeSentry", "What Else?!")
             .build()
@@ -20,12 +20,14 @@ describe "Upper-bound Policies", () =>
         http = safe_require "http", p
         @server = http.createServer((req, res) ->
             res.writeHead 200, {'Content-Type': 'text/plain'}
-            res.end 'Hello World\n'
+            res.end msg
         ).listen(@port)
 
         http.get "http://localhost:#{@port}/", (res) ->
             res.statusCode.should.equal 200
             res.headers.should.have.property 'x-nodesentry'
-            done()
+            res.on "data", (data) ->
+                data.toString().should.equal msg
+                done()
 
 

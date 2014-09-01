@@ -14,7 +14,13 @@ Indicate if a given library (name) should be wrapped in a separate membrane. If
 a policy doesn't talk about a specific depending library, then it there is no
 need for it to be wrapped. Therefor, the default return value is `false`:
 
-                mustWrap: (libName) -> false
+                mustWrap: (libName) ->
+                    #return true if libName == "fs"
+                    false
+                skip: (libName) -> false
+
+        disable: (lib) -> this
+        enableHSTS: -> this
 
         on: (name) ->
             child = new OnRule name, this
@@ -77,6 +83,7 @@ The `build` method generates the whole structure of our semantic model of the me
                     .value()
 
             @policy.functionCall = (dTgt, dryThis, dryArgs, calcResult, fullName) =>
+                throw new Error "here" if fullName.indexOf("writeHead") > -1
                 relevantRules = _.chain(@rules).filter(strEqual(fullName))
 
                 beforeRules = relevantRules.filter(areType(BeforeRule))
