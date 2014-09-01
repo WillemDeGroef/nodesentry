@@ -8,9 +8,13 @@ Read the extended abstract at https://lirias.kuleuven.be/bitstream/123456789/458
 
 ## Installation Instructions
 
-Install the module via npm: `npm install nodesentry`
+Install this module directly: `npm install nodesentry`
 
-Build status: [![Build Status](https://travis-ci.org/WillemDeGroef/nodesentry.svg?branch=master)](https://travis-ci.org/WillemDeGroef/nodesentry)
+## Status
+
+* Build status: [![Build Status](https://travis-ci.org/WillemDeGroef/nodesentry.svg?branch=master)](https://travis-ci.org/WillemDeGroef/nodesentry)
+* Dependencies: [![Dpendencies](https://david-dm.org/willemdegroef/nodesentry.svg)](https://david-dm.org/willemdegroef/nodesentry)
+* NPM Module: ![](https://badge.fury.io/js/nodesentry.svg)
 
 ## Examples
 
@@ -52,4 +56,5 @@ This example is also used in the file `test/upperbound.test.coffee`, as part of 
 ## License
 
 This software is licensed under the **MIT License**. See the [LICENSE](LICENSE) file for more information.
-Copyright 2014 -- iMinds-DistriNet, KU Leuven
+
+_Copyright 2014 -- iMinds-DistriNet, KU Leuven_
