@@ -14,8 +14,8 @@ goal of transitively revoking all references as advocated by Miller.
 
     class Membrane
 
-        constructor: (@wetTarget, @policyObj) ->
-            return makeGenericMembrane(@wetTarget, @policyObj).target
+        constructor: (@wetTarget, @policyObj, @name) ->
+            return makeGenericMembrane(@wetTarget, @policyObj, @name).target
             
 
 Currently we rely on a slightly modified version of the 

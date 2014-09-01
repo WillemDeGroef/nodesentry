@@ -132,7 +132,7 @@ require("harmony-reflect");
    *    having this callback throw an exception.
    *
    */
-  function makeGenericMembrane(initWetTarget, dry2wetHandler) {
+  function makeGenericMembrane(initWetTarget, dry2wetHandler, membraneName) {
       var wet2dryHandler = dry2wetHandler;
 
     /****************************************************************************
@@ -237,13 +237,13 @@ require("harmony-reflect");
             try {
 
               var dryResult = null;
+              var calcResult = function () { return Reflect.apply(dryTarget, dryThis, dryArgs); };
 
               if (handler.functionCall) {
-                  dryResult = handler.functionCall(dryTarget, dryThis, dryArgs);
-              } else {
-                  dryResult = Reflect.apply(dryTarget, dryThis, dryArgs);            
-              }
+                  calcResult = handler.functionCall(dryTarget, dryThis, dryArgs, calcResult, membraneName);
+              } 
 
+              dryResult = calcResult();
               var wetResult = dryToWet(dryResult);
               return wetResult;
             } catch (dryException) {
