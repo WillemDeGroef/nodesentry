@@ -10,19 +10,20 @@ describe "Upper-bound Policies", () =>
     afterEach =>
         try @server.close()
 
+    startHTTPServer = (http, f) =>
+        @server = http.createServer(f).listen(@port)
+
     it "can add extra HTTP response headers", (done) =>
         p = new Policy()
             .on("ServerResponse.writeHead")
-                .do((response) ->
-                    response.setHeader "X-NodeSentry", "What Else?!")
-            .build()
+                .do((response) -> response.setHeader "X-NodeSentry", "What Else?!")
 
         msg = "Hello World\n"
-        http = safe_require "http", p
-        @server = http.createServer((req, res) ->
+        http = safe_require "http", p.build()
+        startHTTPServer(http, (req, res) ->
             res.writeHead 200, {'Content-Type': 'text/plain'}
             res.end msg
-        ).listen(@port)
+        )
 
         http.get "http://localhost:#{@port}/", (res) ->
             res.statusCode.should.equal 200
