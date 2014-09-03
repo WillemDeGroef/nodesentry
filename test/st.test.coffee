@@ -7,12 +7,14 @@ describe "`st@0.2.4`", () =>
     @server = null
     max = 32000
     min = 1025
+
+    validUrl = (url) -> url.indexOf("%2e") > -1 or url.indexOf("..") > -1
+
     @po = new Policy()
-             .on("IncomingMessage.url")
-                .return((origUrl) -> "/redirect_to_404_page")
-                .if((dtgt, url) ->
-                    url.indexOf("%2e") > -1 or url.indexOf("..") > -1)
-            .build()
+            .on "IncomingMessage.url"
+                .return -> "/redirect_to_404_page"
+                .if (incomingMessage, url) -> validUrl url
+                .build()
 
     beforeEach =>
         @port = Math.floor(Math.random() * (max - min) + min)
