@@ -1,50 +1,58 @@
-Module
-======
-
-Acts as a replacement for the original module. Works by loading a given library
-in a sandbox (to apply lower-bound policies) and wraps each public API also in
-a membrane (to apply upper-bound policies)
-
-
-    path = require "path"
     vm = require "vm"
-    fs = require "fs"
-
-    Sandbox = require "./sandbox"
+    path = require "path"
+    _ = require "underscore"
     Membrane = require "./membrane"
-
-    stripBOM = (content) ->
-        content.slice 1 if content.charCodeAt(0) == 0xFEFF
-        content
-
-    class Module
-
-        constructor: (@libName) ->
-            @policyObj = {}
-            @fileName = require.resolve(@libName)
-
-        setPolicy: (@policyObj) ->
-
-Return `true` if we know for sure that the requested library is a built-in library.
-
-        isBuiltInModule: () -> @fileName.indexOf(".js") == -1
-
-Load the library and return a wrapped version of the original public API:
-
-        loadLibrary: () ->
-            requireCode = "module.exports = require('#{@libName}');"
-            requireCode = stripBOM(fs.readFileSync(@fileName, "utf8")).toString() unless @isBuiltInModule()
-
-            script = vm.createScript requireCode
-
-Load in an instrumented sandbox to enforce lower-bound policies:
-
-            ctxt = new Sandbox(@fileName, @policyObj).context()
-            script.runInContext ctxt
-
-Apply a membrane on the public API of the library to enforce upper-bound policies:
-
-            new Membrane(ctxt.module.exports, @policyObj)
+    Require = require
 
 
-    module.exports = Module
+    class WrappedModule
+
+        constructor: (@libName, @modulePaths, @policyObj) ->
+            @modModule = (require "module")
+            @module = new  @modModule(@libName, this)
+            @fileName = @modModule._findPath @libName, @modulePaths
+            @pathName = path.dirname @fileName
+
+        load: (requireFunc = @membranedRequire) ->
+            throw new Error "`require` must be a function" if typeof requireFunc != "function"
+            module.paths = [@pathName].concat(@modModule._nodeModulePaths(@pathName))
+            @module.require = requireFunc
+            @module.load @fileName
+            r = @module.exports
+
+
+Return a membraned variant of the public API interface.
+
+            return r if not @policyObj
+            return new Membrane(r, @policyObj, r.toString()) if (typeof r) == "function"
+            return @wrapObjectWithMembrane(@fileName.replace(".js",""), r) if (typeof r) == "object"
+            throw new Error "unimplemented case in #{__filename}"
+
+
+        membranedRequire: (libName) =>
+            mod = new WrappedModule libName, module.paths, @policyObj
+            if not mod.fileName or @policyObj?.skip?(libName)
+                libexports = Require libName
+            else
+
+Lets load the new `Module` for the requested library.
+
+                libexports = mod.load @membranedRequire
+
+If the library is only used within the (outer) membrane, i.e., it is not
+referenced in the policy, we return immediately.
+
+            return libexports unless @policyObj?.mustWrap?(libName)
+
+The last step is to create a wrapper function that will carefully wrap each
+exported API call within a membrane.
+
+            @wrapObjectWithMembrane(libName, libexports)
+
+        wrapObjectWithMembrane: (libName, obj) ->
+            _.object(_.map obj, @buildMembraneWrapper libName)
+
+        buildMembraneWrapper: (libName) =>
+            (propObj, propName) => [propName, new Membrane(propObj, @policyObj, "#{libName}.#{propName}")]
+
+    module.exports = WrappedModule

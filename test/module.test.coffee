@@ -1,55 +1,18 @@
 should = require 'should'
-Module = require "../src/module"
-Policy = require "../src/policy"
+ModuleLoader = require "../src/module"
 
-describe "Module", () ->
-    beforeEach =>
-        @policy = new Policy()
-        @module = new Module("../test/circle.js")
-        @module.setPolicy @policy
+describe "ModuleLoader", ->
+    it "should load libraries", ->
+        loader = new ModuleLoader("../test/circle.js", module.paths)
+        e = loader.load(require)
+        e.should.have.properties ["PI", "area", "circumference", "test"]
+        e.area(1).should.be.approximately 3, 1
 
-    it "should return a module object", =>
-        @module.should.be.type "object"
-
-    it "should load the library", =>
-        @module.loadLibrary.should.be.type "function"
-
-        publicAPI = @module.loadLibrary()
-        publicAPI.should.be.an.Object
-        publicAPI.should.have.properties ["area", "circumference"]
-
-    it "should allow calls to public API", =>
-        circle = @module.loadLibrary()
-        circle.area(10).should.be.approximately 314, 1
-
-    it "should allow calls to public API depending on libraries", =>
-        circle = @module.loadLibrary()
-        circle.test().should.be.above 1
-
-     it "should intercept calls to public API", (done) =>
-        @policy.on("area").do(-> done())
-        m = new Module("../test/circle.js")
-        m.setPolicy @policy.build()
-
-        circle = m.loadLibrary()
-        circle.area(10).should.be.approximately 314, 1
-
-     it "should intercept calls to depending libraries", (done) =>
-        @policy.on("test").do(-> done())
-        @module = new Module("../test/circle.js")
-        @module.setPolicy @policy.build()
-
-        circle = @module.loadLibrary()
-        circle.test().should.be.above 1
-
-    it "should work with buffers through membranes", =>
-        b = new Buffer("hello")
-        circle = @module.loadLibrary()
-        circle.handle_buffer(b).should.be.equal "hello"
-
-    it "should receive buffers through membranes", =>
-        circle = @module.loadLibrary()
-        b = circle.get_buffer()
-        b.constructor.name.should.be.equal "Buffer"
-        b.toString().should.be.equal "hello"
-        Buffer.isBuffer(b).should.be.true
+    it "should allow custom `require` functions", (done) ->
+        loader = new ModuleLoader("../test/circle.js", module.paths)
+        e = loader.load(=>
+            done()
+            require.apply this, arguments)
+        e.should.have.properties ["PI", "area", "circumference", "test"]
+        e.area(1).should.be.approximately 3, 1
+        e.test().should.be.above 0
