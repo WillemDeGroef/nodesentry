@@ -25,8 +25,7 @@ describe 'Generic membrane', ->
     it 'should work on built-in libraries', ->
         os = require "os"
         os2 = new Membrane(os, memHandler)
-        osstr = Object.getOwnPropertyNames(os).toString()
-        Object.getOwnPropertyNames(os2).toString().should.equal osstr
+        os2.should.have.properties Object.getOwnPropertyNames(os)
 
     it 'should work with buffers', ->
         dryObj.should.have.property "z"
