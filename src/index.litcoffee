@@ -36,24 +36,21 @@ Miller~\cite{miller2006}.
     
     harmony = require "harmony-reflect"
     log = require "./logger"
-    Module = require "./module"
+    WrappedModule = require "./module"
     path = require "path"
 
     absolutePath = (name) -> name[0] == "/"
-    installedModule = (name) -> not (name.indexOf(".js") > -1)
+    installedModule = (name) -> not (name.indexOf(".js") > -1) and not (name.indexOf(".") > -1)
     updatePath = (name) -> path.join(path.dirname(module.parent.filename), name)
 
     global.safe_require = (libName, policyObj) ->
-        # update relative paths
         libName = updatePath(libName) unless absolutePath(libName) or installedModule(libName)
-        # update search paths for local/global modules
-        module.paths = module.parent.paths
-        if policyObj?
-            m = new Module(libName)
-            m.setPolicy policyObj
-            m.loadLibrary()
-        else
-            require libName
+        modPaths = module.parent.paths
+
+Load the module in a specific `ModuleLoader` that makes it possible to intercept all subsequent calls to `require`.
+
+        wrappedModule = new WrappedModule(libName, modPaths, policyObj)
+        do wrappedModule.load
 
     module.exports.Policy = require "./policy"
 
