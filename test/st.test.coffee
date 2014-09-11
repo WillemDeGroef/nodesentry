@@ -25,8 +25,23 @@ describe "`st@0.2.4`", () =>
     it "should work", (done) =>
         st = require "../demos/st"
         @server = http.createServer(st(process.cwd())).listen(@port)
+        http.get "http://localhost:#{@port}/package.json", (res) ->
+            res.statusCode.should.equal 200
+            done()
+
+    it "should work on /", (done) =>
+        st = require "../demos/st"
+        @server = http.createServer(st(process.cwd())).listen(@port)
         http.get "http://localhost:#{@port}/", (res) ->
             res.statusCode.should.equal 200
+            done()
+
+
+    it "should work for non-existant files", (done) =>
+        st = require "../demos/st"
+        @server = http.createServer(st(process.cwd())).listen(@port)
+        http.get "http://localhost:#{@port}/package.jso", (res) ->
+            res.statusCode.should.equal 404
             done()
 
     it "should be vulnerable", (done) =>
@@ -37,24 +52,32 @@ describe "`st@0.2.4`", () =>
             done()
 
     it "should be still functional under NodeSentry", (done) =>
-        st = safe_require "../demos/st"
+        st = safe_require "../demos/st", @po
         @server = http.createServer(st(process.cwd())).listen(@port)
-        http.get "http://localhost:#{@port}/", (res) ->
+        http.get "http://localhost:#{@port}/package.json", (res) ->
             res.statusCode.should.equal 200
             done()
 
-    it "should be secure for malicious requests", (done) =>
+    it "should be still functional under NodeSentry (2)", (done) =>
+        st = safe_require "../demos/st", @po
+        @server = http.createServer(st(process.cwd())).listen(@port)
+        http.get "http://localhost:#{@port}/package.jso", (res) ->
+            res.statusCode.should.equal 404
+            done()
+
+    it "should be still functional under NodeSentry (3)", (done) =>
+        st = safe_require "../demos/st", @po
+        @server = http.createServer(st(process.cwd())).listen(@port)
+        http.get "http://localhost:#{@port}/", (res) ->
+            res.statusCode.should.equal 200
+            res.on "data", (data) ->
+                do done if data.toString().indexOf("package.json") > -1
+
+    it "shouldn't be vulnerable anymore", (done) =>
         st = safe_require "../demos/st", @po
         @server = http.createServer(st(process.cwd())).listen(@port)
         http.get "http://localhost:#{@port}/../package.json", (res) ->
             res.statusCode.should.equal 404
+            res.on "data", (data) ->
+                console.log data.toString()
             done()
-
-    it "should be secure for non-malicious requests", (done) =>
-        st = safe_require "../demos/st", @po
-        @server = http.createServer(st(process.cwd())).listen(@port)
-        http.get "http://localhost:#{@port}/", (res) ->
-            res.statusCode.should.equal 200
-            done()
-
-
