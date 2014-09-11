@@ -17,7 +17,6 @@ need for it to be wrapped. Therefor, the default return value is `false`:
                 wrapWithMembrane: (libName) -> false
 
         disable: (lib) -> this
-        enableHSTS: -> this
 
         on: (name) ->
             child = new OnRule name, this
