@@ -13,8 +13,8 @@ Install this module directly: `npm install nodesentry`
 ## Status
 
 * Build status: [![Build Status](https://travis-ci.org/WillemDeGroef/nodesentry.svg?branch=master)](https://travis-ci.org/WillemDeGroef/nodesentry)
-* Dependencies: [![Dpendencies](https://david-dm.org/willemdegroef/nodesentry.svg)](https://david-dm.org/willemdegroef/nodesentry)
-* NPM Module: ![](https://badge.fury.io/js/nodesentry.svg)
+* Dependencies: [![Dependencies](https://david-dm.org/willemdegroef/nodesentry.svg)](https://david-dm.org/willemdegroef/nodesentry)
+* NPM Module: [![NPM version](https://badge.fury.io/js/nodesentry.svg)](http://badge.fury.io/js/nodesentry)
 
 ## Examples
 
