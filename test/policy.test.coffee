@@ -10,7 +10,7 @@ describe "Policy", =>
 
     it "should return a default policy", =>
         p = @policy.build()
-        p.mustWrap("bleh").should.be.false
+        p.wrapWithMembrane("bleh").should.be.false
         p.onGet({}, "", {}, {}, 1234).should.equal 1234
 
     it "should modify return values", =>
