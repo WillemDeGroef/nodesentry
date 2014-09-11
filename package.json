@@ -1,7 +1,7 @@
 {
   "name": "nodesentry",
   "description": "Framework for least-privilege integration of libraries",
-  "version": "0.0.3",
+  "version": "0.1",
   "homepage": "https://github.com/WillemDeGroef/nodesentry",
   "author": {
     "name": "Willem De Groef",
@@ -42,7 +42,13 @@
     "load-grunt-tasks": "^0.6.0",
     "should": "^4.0.4"
   },
-  "keywords": ["least-privilege", "security", "web hardening", "access control", "library containment"],
+  "keywords": [
+    "least-privilege",
+    "security",
+    "web hardening",
+    "access control",
+    "library containment"
+  ],
   "dependencies": {
     "harmony-reflect": "^1.0.1",
     "underscore": "^1.6.0"
