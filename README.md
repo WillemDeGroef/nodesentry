@@ -4,7 +4,15 @@ Node.js is a popular JavaScript server-side frame-work with an efficient runtime
 
 In order to support the least-privilege integration of libraries we develop NodeSentry, the first security architecture for server-side JavaScript. Our policy enforcement infrastructure supports an easy deployment of web-hardening techniques and access control policies on interactions between libraries and their environment, including any dependent library
 
-Read the extended abstract at https://lirias.kuleuven.be/bitstream/123456789/458467/1/jstools.pdf
+This work has been presented at the 2014 Annual Computer Security Applications Conference.
+
+---
+
+**NodeSentry: Least-privilege Library Integration for Server-side JavaScript**. Willem De Groef, Fabio Massacci and Frank Piessens.
+In _Proceedings of the 30th Annual Computer Security Applications Conference (ACSAC)_, pages 446-455, 2014.
+[PDF](static/nodesentry.pdf) | [BibTeX](static/nodesentry.bib) | [presentation](static/presentation.pdf)
+
+---
 
 ## Installation Instructions
 
