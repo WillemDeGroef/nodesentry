@@ -71,7 +71,7 @@ module.exports = ( grunt ) ->
                     src: '<%= libDir %>**/*.js'
                 ]
                 options:
-                    banner:'/* <%= pkg.name %> v<%= pkg.version %>\nCopyright 2014 -- iMinds-DistriNet, KU Leuven */\n'
+                    banner:'/*\nNodeSentry v<%= pkg.version %>\nCopyright 2014 -- iMinds-DistriNet, KU Leuven\n*/\n'
 
         clean:
             build: ['<%= libDir %>**/*.js']
