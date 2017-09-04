@@ -40,7 +40,7 @@
     "grunt-contrib-watch": "^0.6.1",
     "grunt-mocha-cli": "^1.9.0",
     "load-grunt-tasks": "^0.6.0",
-    "should": "^4.0.4"
+    "should": "4.0.4"
   },
   "keywords": [
     "least-privilege",
