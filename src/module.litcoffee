@@ -10,7 +10,10 @@
             @fileName = @modModule._findPath @libName, @modulePaths
             @requestLib = @fileName || @libName
             @builtIn = @requestLib.indexOf(".js") == -1
-            @pathName = path.dirname @fileName
+            if @fileName != false
+                @pathName = path.dirname @fileName
+            else
+                @pathName = ""
 
         load: (requireFunc = @membranedRequire) ->
             throw new Error "`require` must be a function" if typeof requireFunc != "function"
