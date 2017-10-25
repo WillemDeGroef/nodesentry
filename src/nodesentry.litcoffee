@@ -1,6 +1,5 @@
 # NodeSentry
 
-    harmony = require "harmony-reflect"
     log = require "./logger"
     Module = require "./module"
     origRequire = require

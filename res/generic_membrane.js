@@ -1,5 +1,4 @@
 //
-require("harmony-reflect");
 // Copyright (C) 2013 Software Languages Lab, Vrije Universiteit Brussel
 
 // Licensed under the Apache License, Version 2.0 (the "License");

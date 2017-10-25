@@ -34,7 +34,6 @@ Miller~\cite{miller2006}.
     harmonyFlagsEnabled = -> "function" == typeof Map
     throw new Error "NodeSentry requires the harmony flags. (`node --harmony`)" if not harmonyFlagsEnabled()
     
-    harmony = require "harmony-reflect"
     log = require "./logger"
     WrappedModule = require "./module"
     path = require "path"
