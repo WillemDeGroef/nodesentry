@@ -10,6 +10,7 @@
             @fileName = @modModule._findPath @libName, @modulePaths
             @requestLib = @fileName || @libName
             @builtIn = @requestLib.indexOf(".js") == -1
+            @absolute = @libName.indexOf("./") == -1
             if @fileName != false
                 @pathName = path.dirname @fileName
             else
@@ -24,7 +25,11 @@
             else
                 wrappedMod = new @modModule(@libName, this)
                 wrappedMod.require = requireFunc
-                wrappedMod.load @requestLib
+                if @absolute
+                    wrappedMod.load @requestLib
+                else
+                    console.log "Loading the fileName instead"
+                    wrappedMod.load @fileName
                 r = wrappedMod.exports
 
 
