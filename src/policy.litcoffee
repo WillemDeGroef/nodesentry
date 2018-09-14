@@ -40,8 +40,7 @@ The `build` method generates the whole structure of our semantic model of the me
         build: () =>
             @libsToWrap = []
 
-            strEqual = (fullName) ->
-                (rule) -> fullName.indexOf(rule.apiCall) > -1
+            strEqual = (fullName) -> (rule) -> fullName == rule.apiCall
 
             areType = (t) ->
                 (rule) -> rule instanceof t
@@ -65,6 +64,7 @@ The `build` method generates the whole structure of our semantic model of the me
             isNotFunction = (v) -> typeof v != "function"
 
             @policy.onGet = (wTgt, name, wRec, dTgt, ret) =>
+                name = name.toString()
                 fullName = "#{dTgt.constructor.name.toString()}.#{name}"
                 relevantRules = _.chain(@rules)
                     .filter(strEqual(fullName))
@@ -73,12 +73,15 @@ The `build` method generates the whole structure of our semantic model of the me
                 beforeRules = relevantRules.filter(areType(BeforeRule))
                 afterRules = relevantRules.filter(areType(AfterRule))
 
+
                 onGetValue = onRules.filter(conditionsAreTrue(dTgt, ret))
                     .map(doGetActions(dTgt, ret))
                     .reduce(calcRetValue, ret)
                     .value()
 
             @policy.functionCall = (dTgt, dryThis, dryArgs, calcResult, fullName) =>
+                if dryThis != undefined and fullName.indexOf("/") != -1
+                    fullName = "#{dryThis.constructor.name}.#{dTgt.name}"
                 relevantRules = _.chain(@rules).filter(strEqual(fullName))
 
                 beforeRules = relevantRules.filter(areType(BeforeRule))
