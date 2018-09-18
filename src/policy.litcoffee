@@ -87,7 +87,7 @@ The `build` method generates the whole structure of our semantic model of the me
                 beforeRules = relevantRules.filter(areType(BeforeRule))
                 afterRules = relevantRules.filter(areType(AfterRule))
 
-                calcResult = beforeRules.filter(conditionsAreTrue(dTgt))
+                calcResult = beforeRules.filter(conditionsAreTrue(dTgt, dryArgs))
                        .map(doGetActions(dTgt, dryArgs, calcResult))
                        .reduce(calcRetValue, calcResult)
                        .value()
