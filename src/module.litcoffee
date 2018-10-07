@@ -10,6 +10,8 @@
             @fileName = @modModule._findPath @libName, @modulePaths
             @requestLib = @fileName || @libName
             @builtIn = @requestLib.indexOf(".js") == -1
+            @absolute = @libName.indexOf("./") == -1
+            @libName = path.basename @libName,".js"
             if @fileName != false
                 @pathName = path.dirname @fileName
             else
@@ -24,7 +26,10 @@
             else
                 wrappedMod = new @modModule(@libName, this)
                 wrappedMod.require = requireFunc
-                wrappedMod.load @requestLib
+                if @absolute
+                    wrappedMod.load @requestLib
+                else
+                    wrappedMod.load @fileName
                 r = wrappedMod.exports
 
 
@@ -32,13 +37,14 @@ Return a membraned variant of the public API interface.
 
             return r if not @policyObj
             return new Membrane(r, @policyObj, @requestLib) if (typeof r) == "function"
-            return @wrapObjectWithMembrane(@requestLib.replace(".js",""), r)
+            return @wrapObjectWithMembrane(@libName.replace(".js",""), r)
 
 
         membranedRequire: (libName) =>
             mod = new WrappedModule libName, module.paths, @policyObj
-            
-            return require(libName) if mod.builtIn or not @policyObj?.wrapWithMembrane?(libName)
+
+            return require(libName) if mod.builtIn
+            return require(mod.fileName) if not @policyObj?.wrapWithMembrane?(libName)
 
 Lets load the new `Module` for the requested library.
 
