@@ -22,6 +22,9 @@
 
 // requires Direct Proxies
 // load('reflect.js') before using
+if (typeof Reflect === 'undefined') {
+    require("harmony-reflect");
+}
  
 (function(exports){
   "use strict";
