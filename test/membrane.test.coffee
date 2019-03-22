@@ -3,7 +3,7 @@ Membrane = require('../src/membrane')
 
 describe 'Generic membrane', ->
 
-    wetObj = {x: {y: 2}, z: new Buffer("hello"), a: [1,2,3,4]}
+    wetObj = {x: {y: 2}, z: new Buffer("hello"), a: [1,2,3,4], p: 2.123}
     interceptedGets = 0
     memHandler =
             onGet: (tgt, name, rcvr, drytgt, ret) ->
@@ -16,11 +16,13 @@ describe 'Generic membrane', ->
         dryFoo = dryObj.x
         dryFoo.should.have.property "y"
         dryFoo.y.should.equal 2
+        dryObj.should.have.property "p"
+        dryObj.p.should.equal 2.123
 
     it 'should run the handler', ->
         dryFoo = dryObj.x
         #interceptedGets is updated via the memory handler
-        interceptedGets.should.equal 9
+        interceptedGets.should.equal 13
 
     it 'should work on built-in libraries', ->
         os = require "os"

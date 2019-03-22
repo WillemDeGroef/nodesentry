@@ -40,6 +40,7 @@ if (typeof Reflect === 'undefined') {
    * Either succeeds silently or fails noisily with a TypeError.
    */
   function copy(src, dst, name, wrap) {
+    console.log("Copying name %s", name);
     var srcDesc = Reflect.getOwnPropertyDescriptor(src, name);
     if (srcDesc === undefined) {
       delete dst[name];
@@ -81,9 +82,18 @@ if (typeof Reflect === 'undefined') {
    * using 'wrap' before being defined on the 'dst' object.
    */
   function copyAll(src, dst, wrap) {
+    console.log("Copying all", name);
     Object.getOwnPropertyNames(src).forEach(function (name) {
       copy(src, dst, name, wrap);
     });
+      /*
+    if (src instanceof Number || src instanceof Boolean || src instanceof String || src instanceof Symbol) {
+        dst[Symbol.toPrimitive] = function(hint) {console.log("doing the toPrimitive hint thing"); if (hint === "number") { return Number(src)} else { return ""}};
+        dst.valueOf = wrap(src.valueOf);
+        dst.toString = wrap(src.toString);
+        dst[util.inspect.custom] = wrap(src[util.inspect.custom]);
+    }
+    */
   }
 
   function isConfigurable(obj, name) {
@@ -198,14 +208,15 @@ if (typeof Reflect === 'undefined') {
 
       // This function is called whenever a dry object crosses the membrane
       // to the wet side. It should convert the dryTarget to its wet counterpart.
-      return function(dryTarget) {
+      return function(dryTarget, isModuleItself) {
 
         if (Object(dryTarget) !== dryTarget) {
           return dryTarget; // primitives are passed through unwrapped
         }
         // errors are passed as reconstructed error objects
         if (dryTarget instanceof Error) {
-          return new Error(''+dryTarget.message);
+          // return new Error(''+dryTarget.message);
+          return dryTarget;
         }
 
         //Fixed the problem with instanceof Buffer by
@@ -213,6 +224,20 @@ if (typeof Reflect === 'undefined') {
         if (dryTarget instanceof Buffer) {
             return new Buffer(dryTarget);
         }
+          /*
+        if (dryTarget instanceof Boolean) {
+            return new Boolean(dryTarget);
+        }
+        if (dryTarget instanceof Number) {
+            return new Number(dryTarget);
+        }
+        if (dryTarget instanceof String) {
+            return new String(dryTarget);
+        }
+        if (dryTarget instanceof Symbol) {
+            return new Symbol(dryTarget);
+        }
+        */
 
         var wetToDryWrapper = dryToWetCache.get(dryTarget);
         if (wetToDryWrapper) {
@@ -230,7 +255,17 @@ if (typeof Reflect === 'undefined') {
 
         var wetShadowTarget;
 
-        if (typeof dryTarget === "function") {
+          /*
+        if (dryTarget instanceof Number) {
+          wetShadowTarget.valueOf = wrap(dryTarget);
+        }
+          */
+
+        if (typeof dryTarget === "number") {
+            wetShadowTarget = wetToDry(dryTarget);
+        }
+        else if (typeof dryTarget === "function") {
+          console.log("ping");
           wetShadowTarget = function wrapper() {
             var wetArgs = Array.prototype.slice.call(arguments);
             var wetThis = this;
@@ -242,10 +277,12 @@ if (typeof Reflect === 'undefined') {
               var calcResult = function () { return Reflect.apply(dryTarget, dryThis, dryArgs); };
 
               if (handler.functionCall) {
-                  calcResult = handler.functionCall(dryTarget, dryThis, dryArgs, calcResult, membraneName);
+                  calcResult = handler.functionCall(dryTarget, dryThis, dryArgs, calcResult, (isModuleItself ? membraneName + "." + name : membraneName));
               } 
 
+                console.log("Just before calcResult in generic_membrane");
               dryResult = calcResult();
+                console.log("Just after calcResult in generic_membrane");
               var wetResult = dryToWet(dryResult);
               return wetResult;
             } catch (dryException) {
@@ -254,13 +291,33 @@ if (typeof Reflect === 'undefined') {
             }
           };
         } else {
-          var dryProto = Object.getPrototypeOf(dryTarget);
-          wetShadowTarget = Object.create(dryToWet(dryProto));
+          var dryProto = Reflect.getPrototypeOf(dryTarget);
+          // wetShadowTarget = Object.create(dryToWet(dryProto));
+          var theType = Object;
+          var arg = [];
+          if (dryTarget instanceof Number) {
+              theType = Number;
+              arg = [dryTarget];
+          }
+          if (dryTarget instanceof Boolean) {
+              theType = Boolean;
+              arg = [dryTarget];
+          }
+          if (dryTarget instanceof String) {
+              theType = String;
+              arg = [dryTarget];
+          }
+          if (dryTarget instanceof Symbol) {
+              theType = Symbol;
+          }
+          wetShadowTarget = Reflect.construct(theType, arg);
+          Reflect.setPrototypeOf(wetShadowTarget, dryToWet(dryProto));
         }
 
         wetToDryWrapper = new Proxy(wetShadowTarget, {
 
           getOwnPropertyDescriptor: function(wetShadowTarget, name) {
+            console.log("getOwnPropertyDescriptor");
             if (handler.onGetOwnPropertyDescriptor) {
               handler.onGetOwnPropertyDescriptor(wetShadowTarget, name, dryTarget);
             }
@@ -276,7 +333,24 @@ if (typeof Reflect === 'undefined') {
             return Reflect.getOwnPropertyDescriptor(wetShadowTarget, name);
           },
 
+          ownKeys: function(wetShadowTarget) {
+            console.log("ownkeys");
+            if (handler.onGetOwnPropertyNames) {
+              handler.onGetOwnPropertyNames(wetShadowTarget, dryTarget);              
+            }
+
+            // no-invariant case:
+            if (Object.isExtensible(wetShadowTarget)) {
+              return Reflect.getOwnPropertyNames(dryTarget);
+            }
+            
+            // general case:
+            copyAll(dryTarget, wetShadowTarget, dryToWet);
+            return Reflect.getOwnPropertyNames(wetShadowTarget);
+          },
+
           getOwnPropertyNames: function(wetShadowTarget) {
+            console.log("getOwnPropertyNames");
             if (handler.onGetOwnPropertyNames) {
               handler.onGetOwnPropertyNames(wetShadowTarget, dryTarget);              
             }
@@ -292,6 +366,8 @@ if (typeof Reflect === 'undefined') {
           },
 
           getPrototypeOf: function(wetShadowTarget) {
+            let util = require('util');
+            // console.log("getPrototypeOf: %s", util.inspect(dryTarget, {showProxy: true}));
             if (handler.onGetPrototypeOf) {
               handler.onGetPrototypeOf(wetShadowTarget, dryTarget);              
             }
@@ -310,8 +386,15 @@ if (typeof Reflect === 'undefined') {
             }
             return Reflect.getPrototypeOf(wetShadowTarget);
           },
+          setPrototypeOf: function(wetShadowTarget, proto) {
+              console.log("set prototype of")
+              if (handler.onSetPrototypeOf) {
+                  handler.onSetPrototypeOf(wetShadowTarget, proto, dryTarget);
+              }
+          },
 
           defineProperty: function(wetShadowTarget, name, wetDesc) {
+            console.log("defineProperty");
             if (handler.onDefineProperty) {
               handler.onDefineProperty(wetShadowTarget, name, wetDesc, dryTarget);              
             }
@@ -332,6 +415,7 @@ if (typeof Reflect === 'undefined') {
           },
 
           deleteProperty: function(wetShadowTarget, name) {
+            console.log("deleteProperty");
             if (handler.onDeleteProperty) {
               handler.onDeleteProperty(wetShadowTarget, name, dryTarget);              
             }
@@ -351,6 +435,7 @@ if (typeof Reflect === 'undefined') {
           },
 
           preventExtensions: function(wetShadowTarget) {
+            console.log("preventExtensions");
             if (handler.onPreventExtensions) {
               handler.onPreventExtensions(wetShadowTarget, dryTarget);  
             }
@@ -361,6 +446,7 @@ if (typeof Reflect === 'undefined') {
           },
 
           isExtensible: function(wetShadowTarget) {
+            console.log("isExtensible");
             if (handler.onIsExtensible) {
               handler.onIsExtensible(wetShadowTarget, dryTarget);              
             }
@@ -375,6 +461,7 @@ if (typeof Reflect === 'undefined') {
           // FIXME: skipped freeze, seal, isFrozen, isSealed traps
 
           has: function(wetShadowTarget, name) {
+            console.log("has: %s", name);
             if (handler.onHas) {
               handler.onHas(wetShadowTarget, name, dryTarget);              
             }
@@ -391,6 +478,7 @@ if (typeof Reflect === 'undefined') {
           },
 
           hasOwn: function(wetShadowTarget, name) {
+            console.log("hasOwn");
             if (handler.onHasOwn) {
               handler.hasOwn(wetShadowTarget, name, dryTarget);              
             }
@@ -406,13 +494,19 @@ if (typeof Reflect === 'undefined') {
           },
 
           get: function(wetShadowTarget, name, wetReceiver) {
+            // console.log("getting in generic_membrane; membraneName = " + membraneName.toString() + "; name = " + name.toString());
             // DEBUG: if (name === "toString") { return dryTarget.toString; }
 
             var ret;            
+            console.log("membrane.get %s", name);
             // no-invariant case:
             if (isConfigurable(dryTarget, name)) {
               // TODO: catch and wrap exceptions thrown from getter?
               ret = dryToWet(Reflect.get(dryTarget, name, wetToDry(wetReceiver)));
+              let util = require('util');
+              //if (name === "toString" || name === "valueOf") {
+                //console.log("inspecting get for name %s; ret = %s", name, util.inspect(ret, {showProxy: true}));
+              //}
             } else {
             
             // general case:
@@ -428,12 +522,14 @@ if (typeof Reflect === 'undefined') {
             }
 
             if (handler.onGet) {
-              return handler.onGet(wetShadowTarget, name, wetReceiver, dryTarget, ret);              
+              console.log("Just before onGet handler call. isModuleItself: %s; name: %s; membraneName: %s", isModuleItself, name, membraneName);
+              return handler.onGet(wetShadowTarget, name, wetReceiver, dryTarget, ret, (isModuleItself ? membraneName + "." + name : undefined));
             } else
               return ret;
           },
 
           set: function(wetShadowTarget, name, val, wetReceiver) {
+            console.log("set");
             if (handler.onSet) {
               handler.onSet(wetShadowTarget, name, val, wetReceiver, dryTarget);  
             }
@@ -455,6 +551,7 @@ if (typeof Reflect === 'undefined') {
           },
 
           enumerate: function(wetShadowTarget) {
+            console.log("enumerate");
             if (handler.onEnumerate) {
               handler.onEnumerate(wetShadowTarget, dryTarget);
             }
@@ -468,6 +565,7 @@ if (typeof Reflect === 'undefined') {
           },
 
           keys: function(wetShadowTarget) {
+            console.log("keys");
             if (handler.onKeys) {
               handler.onKeys(wetShadowTarget, dryTarget);
             }
@@ -481,14 +579,17 @@ if (typeof Reflect === 'undefined') {
           },
 
           apply: function(wetShadowTarget, wetThisArg, wetArgs) {
+            console.log("apply: %s", wetShadowTarget.name);
             if (handler.onApply) {
               handler.onApply(wetShadowTarget, wetThisArg, wetArgs, dryTarget);
             }
             
+            // console.log("Reflect.apply(wetShadowTarget = " + wetShadowTarget + ", wetThisArg = " + wetThisArg + ", wetArgs = "  + wetArgs + ")");
             return Reflect.apply(wetShadowTarget, wetThisArg, wetArgs);
           },
 
           construct: function(wetShadowTarget, wetArgs) {
+            console.log("construct");
             if (handler.onConstruct) {
               handler.onConstruct(wetShadowTarget, wetArgs, dryTarget);              
             }
@@ -523,7 +624,7 @@ if (typeof Reflect === 'undefined') {
                                     wetToDryRef, dryToWetRef, wet2dryHandler);
 
     return {
-      target: wetToDryRef.val(initWetTarget),
+      target: wetToDryRef.val(initWetTarget, true),
     };
   }; // end makeMembrane
   
