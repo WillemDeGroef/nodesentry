@@ -83,6 +83,8 @@ The `build` method generates the whole structure of our semantic model of the me
                     .reduce(calcRetValue, ret)
                     .value()
 
+                return onGetValue
+
             @policy.functionCall = (dTgt, dryThis, dryArgs, calcResult, fullName) =>
                 console.log("fullname: %s", fullName)
                 if dryThis != undefined and fullName.indexOf("/") != -1
@@ -108,22 +110,6 @@ The `build` method generates the whole structure of our semantic model of the me
 
                 console.log "calcResult before onGetValue"
                 console.log (util.inspect(calcResult, {showProxy: true}))
-
-                onGetValue = onRules.filter(conditionsAreTrue(dTgt, calcResult))
-                # onGetValue = onRules.filter(conditionsAreTrue([dTgt].concat(dryArgs), calcResult))
-                    .map(doGetActions(dTgt, calcResult))
-                    .reduce(calcRetValue, calcResult)
-                    .value()
-
-
-                # console.log "calcResult to String"
-                # console.log calcResult.toString()
-                # console.log "rules"
-                # console.log @rules[0].ret.toString()
-                # Use the modified value that .on generated as actual function.
-                # This will have wrapped Reflect.apply .
-                calcResult = onGetValue
-                # console.log "calcResult to String after onGetValue: " + calcResult.toString()
 
                 beforeRules = relevantRules.filter(areType(BeforeRule))
                 afterRules = relevantRules.filter(areType(AfterRule))

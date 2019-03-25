@@ -13,11 +13,12 @@ describe "Policy", =>
         p.wrapWithMembrane("bleh").should.be.false
         p.onGet({}, "", {}, {}, 1234).should.equal 1234
 
-    it "should work for objects containing numbers", =>
+    it.only "should work for objects containing numbers", =>
         circle = safe_require "./circle.js", @policy.build()
         console.log "Logging the numbers: %s; %s; %s", circle.numbers, circle.numbers.PI, circle.numbers.zero
         circle.numbers.PI.should.approximately 3, 1
         circle.numbers.zero.should.equal 0
+        circle.numbers.should.have.properties ["PI", "zero"]
 
 
     it "should modify return values for Numbers", =>
@@ -42,7 +43,7 @@ describe "Policy", =>
         console.log "Side: %s", side
         side.should.equal 1
 
-    it.only "should modify return values of functions", =>
+    it "should modify return values of functions", =>
         @policy.after("circle.area").return((r) -> 2*r)
         circle = safe_require "./circle.js", @policy.build()
         circle.area(1).should.approximately 6, 1

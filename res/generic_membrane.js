@@ -204,13 +204,14 @@ if (typeof Reflect === 'undefined') {
     // on first read, it may help to skip down below to see how this function
     // is used
     var dryToWetMaker =
-      function(dryToWetCache, wetToDryCache, dryToWetRef, wetToDryRef, handler) {
+      function(dryToWetCache, wetToDryCache, dryToWetRef, wetToDryRef, handler, dryorWet) {
 
       // This function is called whenever a dry object crosses the membrane
       // to the wet side. It should convert the dryTarget to its wet counterpart.
-      return function(dryTarget, isModuleItself) {
+      return function(dryTarget, isModuleItself, name) {
 
         if (Object(dryTarget) !== dryTarget) {
+
           return dryTarget; // primitives are passed through unwrapped
         }
         // errors are passed as reconstructed error objects
@@ -276,7 +277,9 @@ if (typeof Reflect === 'undefined') {
               var dryResult = null;
               var calcResult = function () { return Reflect.apply(dryTarget, dryThis, dryArgs); };
 
+              console.log("isModuleItself in wrapper thingy: %s", isModuleItself);
               if (handler.functionCall) {
+                  //throw new Error("Lalalalal");
                   calcResult = handler.functionCall(dryTarget, dryThis, dryArgs, calcResult, (isModuleItself ? membraneName + "." + name : membraneName));
               } 
 
@@ -287,7 +290,8 @@ if (typeof Reflect === 'undefined') {
               return wetResult;
             } catch (dryException) {
               // DEBUG: throw dryException;
-              throw dryToWet(dryException);
+              //throw dryToWet(dryException);
+              throw dryException;
             }
           };
         } else {
@@ -335,34 +339,24 @@ if (typeof Reflect === 'undefined') {
 
           ownKeys: function(wetShadowTarget) {
             console.log("ownkeys");
+            let util = require('util');
+            console.log(util.inspect(Reflect.ownKeys(dryTarget)));
+            console.log(util.inspect(dryTarget));
+            console.log(util.inspect(Reflect.ownKeys(wetShadowTarget)));
+            console.log("testing: " + util.inspect(wetShadowTarget, {showProxy: true}));
             if (handler.onGetOwnPropertyNames) {
+                console.log("SHOULD NOT GET HERE");
               handler.onGetOwnPropertyNames(wetShadowTarget, dryTarget);              
             }
 
             // no-invariant case:
             if (Object.isExtensible(wetShadowTarget)) {
-              return Reflect.getOwnPropertyNames(dryTarget);
+              return Reflect.ownKeys(dryTarget);
             }
             
             // general case:
             copyAll(dryTarget, wetShadowTarget, dryToWet);
-            return Reflect.getOwnPropertyNames(wetShadowTarget);
-          },
-
-          getOwnPropertyNames: function(wetShadowTarget) {
-            console.log("getOwnPropertyNames");
-            if (handler.onGetOwnPropertyNames) {
-              handler.onGetOwnPropertyNames(wetShadowTarget, dryTarget);              
-            }
-            
-            // no-invariant case:
-            if (Object.isExtensible(wetShadowTarget)) {
-              return Reflect.getOwnPropertyNames(dryTarget);
-            }
-            
-            // general case:
-            copyAll(dryTarget, wetShadowTarget, dryToWet);
-            return Reflect.getOwnPropertyNames(wetShadowTarget);
+            return Reflect.ownKeys(wetShadowTarget);
           },
 
           getPrototypeOf: function(wetShadowTarget) {
@@ -461,7 +455,8 @@ if (typeof Reflect === 'undefined') {
           // FIXME: skipped freeze, seal, isFrozen, isSealed traps
 
           has: function(wetShadowTarget, name) {
-            console.log("has: %s", name);
+            let util = require('util');
+            console.log("has: %s; %s", util.inspect(wetShadowTarget, {showProxy: true}), name);
             if (handler.onHas) {
               handler.onHas(wetShadowTarget, name, dryTarget);              
             }
@@ -498,12 +493,19 @@ if (typeof Reflect === 'undefined') {
             // DEBUG: if (name === "toString") { return dryTarget.toString; }
 
             var ret;            
-            console.log("membrane.get %s", name);
+            console.log("membrane.get %s; isModuleItself: %o", name, isModuleItself);
+            let util = require('util');
             // no-invariant case:
             if (isConfigurable(dryTarget, name)) {
               // TODO: catch and wrap exceptions thrown from getter?
-              ret = dryToWet(Reflect.get(dryTarget, name, wetToDry(wetReceiver)));
-              let util = require('util');
+              let temp = Reflect.get(dryTarget, name, wetToDry(wetReceiver));
+              console.log(util.inspect(temp, {showProxy: true}));
+              if (typeof temp == "function") {
+                ret = dryToWet(temp, isModuleItself, name);
+              }
+              else {
+                ret = dryToWet(temp);
+              }
               //if (name === "toString" || name === "valueOf") {
                 //console.log("inspecting get for name %s; ret = %s", name, util.inspect(ret, {showProxy: true}));
               //}
@@ -584,7 +586,8 @@ if (typeof Reflect === 'undefined') {
               handler.onApply(wetShadowTarget, wetThisArg, wetArgs, dryTarget);
             }
             
-            // console.log("Reflect.apply(wetShadowTarget = " + wetShadowTarget + ", wetThisArg = " + wetThisArg + ", wetArgs = "  + wetArgs + ")");
+             //let util = require('util');
+             //console.log("Reflect.apply(wetShadowTarget = " + util.inspect(wetShadowTarget, {showProxy: true}) + ", wetThisArg = " + util.inspect(wetThisArg, {showProxy: true}) + ", wetArgs = "  + util.inspect(wetArgs, {showProxy: true}) + ")");
             return Reflect.apply(wetShadowTarget, wetThisArg, wetArgs);
           },
 
@@ -616,12 +619,12 @@ if (typeof Reflect === 'undefined') {
     var wetToDryRef = {val:null};
 
     dryToWetRef.val = dryToWetMaker(dryToWetCache, wetToDryCache,
-                                    dryToWetRef, wetToDryRef, dry2wetHandler);
+                                    dryToWetRef, wetToDryRef, dry2wetHandler, "dryToWet");
     
     // note the reversed order of wetToDry and dryToWet:
     
     wetToDryRef.val = dryToWetMaker(wetToDryCache, dryToWetCache,
-                                    wetToDryRef, dryToWetRef, wet2dryHandler);
+                                    wetToDryRef, dryToWetRef, wet2dryHandler, "wetToDry");
 
     return {
       target: wetToDryRef.val(initWetTarget, true),
