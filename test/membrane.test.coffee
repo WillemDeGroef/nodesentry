@@ -24,10 +24,9 @@ describe 'Generic membrane', ->
         #interceptedGets is updated via the memory handler
         interceptedGets.should.equal 13
 
-    it.only 'should work on built-in libraries', ->
+    it 'should work on built-in libraries', ->
         os = require "os"
         os2 = new Membrane(os, memHandler)
-        console.log("logging: %o", os2)
         os2.should.have.properties Object.getOwnPropertyNames(os)
 
     it 'should work with buffers', ->

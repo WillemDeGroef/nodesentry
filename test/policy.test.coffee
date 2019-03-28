@@ -13,18 +13,18 @@ describe "Policy", =>
         p.wrapWithMembrane("bleh").should.be.false
         p.onGet({}, "", {}, {}, 1234).should.equal 1234
 
-    it.only "should work for objects containing numbers", =>
+    it "should work for objects containing numbers", =>
         circle = safe_require "./circle.js", @policy.build()
-        console.log "Logging the numbers: %s; %s; %s", circle.numbers, circle.numbers.PI, circle.numbers.zero
         circle.numbers.PI.should.approximately 3, 1
         circle.numbers.zero.should.equal 0
         circle.numbers.should.have.properties ["PI", "zero"]
 
 
     it "should modify return values for Numbers", =>
-        @policy.on("circle.PI2").return((origPI) -> 3*origPI).on("Object.PI").return((origPi) -> 3*origPi)
+        @policy.on("circle.PI2").return((origPI) -> 3*origPI)
         circle = safe_require "./circle.js", @policy.build()
         circle.PI2.should.approximately 9, 1
+        (circle.PI2 + 1).should.approximately 10, 1
 
     it "should modify return values for primitives", =>
         @policy.on("circle.PI").return((origPI) -> 3*origPI)
@@ -35,12 +35,10 @@ describe "Policy", =>
     it "should modify return values for functions", =>
         side = 0
         util = require('util')
-        @policy.on("circle.area").return((origArea) -> ((val) -> console.log("Inspecting origArea in proxy: %s", util.inspect(origArea, {showProxy: true})); side = val; 2*origArea(val)))
+        @policy.on("circle.area").return((origArea) -> ((val) -> side = val; 2*origArea(val)))
         circle = safe_require "./circle.js", @policy.build()
         ans = circle.area(1)
-        console.log("Inspecting ans: %s", util.inspect(ans, {showProxy: true}))
         ans.should.approximately 6, 1
-        console.log "Side: %s", side
         side.should.equal 1
 
     it "should modify return values of functions", =>
