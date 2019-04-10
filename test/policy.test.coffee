@@ -13,11 +13,19 @@ describe "Policy", =>
         p.wrapWithMembrane("bleh").should.be.false
         p.onGet({}, "", {}, {}, 1234).should.equal 1234
 
+    it "should make sure Arrays are still arrays", =>
+        circle = safe_require "./circle.js", @policy.build()
+        Array.isArray(circle.arr).should.equal true
+
     it "should work for objects containing numbers", =>
         circle = safe_require "./circle.js", @policy.build()
         circle.numbers.PI.should.approximately 3, 1
         circle.numbers.zero.should.equal 0
+        console.log "NOW"
+        console.log Object.keys(circle.numbers)
+        console.log "DONE"
         circle.numbers.should.have.properties ["PI", "zero"]
+
 
 
     it "should modify return values for Numbers", =>

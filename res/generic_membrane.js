@@ -40,7 +40,7 @@ if (typeof Reflect === 'undefined') {
    * Either succeeds silently or fails noisily with a TypeError.
    */
   function copy(src, dst, name, wrap) {
-    //console.log("Copying name %s", name);
+    console.log("Copying name %s", name);
     var srcDesc = Reflect.getOwnPropertyDescriptor(src, name);
     if (srcDesc === undefined) {
       delete dst[name];
@@ -210,9 +210,22 @@ if (typeof Reflect === 'undefined') {
       // This function is called whenever a dry object crosses the membrane
       // to the wet side. It should convert the dryTarget to its wet counterpart.
       return function(dryTarget, isModuleItself, isModuleFunction, name) {
-        //console.log("function called; isModuleItself: %s; isModuleFunction: %s; name: %s", isModuleItself, isModuleFunction, name);
+        console.log("function called; isModuleItself: %s; isModuleFunction: %s; name: %s", isModuleItself, isModuleFunction, name);
+          let util = require('util');
+          /*
+          if (name == "lalala") {
+              console.log(util.inspect(dryTarget, {showProxy: true}));
+          }
+          */
+          /*
+          if (name.toString().indexOf("Symbol") == -1 && name.toString().indexOf("constructor") == -1 && name.toString().indexOf("enumerable") == -1) {
+              console.log(util.inspect(dryTarget, {showProxy: true}));
+          }
+          */
 
+        if (name == "lala") { console.log("here1"); }
         if (Object(dryTarget) !== dryTarget) {
+            console.log("Primitive of type %s: \"%s\"", typeof(dryTarget), dryTarget);
 
           return dryTarget; // primitives are passed through unwrapped
         }
@@ -225,6 +238,7 @@ if (typeof Reflect === 'undefined') {
         //Fixed the problem with instanceof Buffer by
         //creating a new one :)
         if (dryTarget instanceof Buffer) {
+            console.log("New Buffer(%s)", dryTarget);
             return new Buffer(dryTarget);
         }
           /*
@@ -242,6 +256,7 @@ if (typeof Reflect === 'undefined') {
         }
         */
 
+        if (name == "lala") { console.log("here2"); }
         var wetToDryWrapper = dryToWetCache.get(dryTarget);
         if (wetToDryWrapper) {
           return wetToDryWrapper; // already got a wrapper
@@ -264,10 +279,13 @@ if (typeof Reflect === 'undefined') {
         }
           */
 
+        if (name == "lala") { console.log("here3"); }
+          /*
         if (typeof dryTarget === "number") {
             wetShadowTarget = wetToDry(dryTarget, false, false, name);
         }
-        else if (typeof dryTarget === "function") {
+        else */
+        if (typeof dryTarget === "function") {
           //console.log("ping");
           wetShadowTarget = function wrapper() {
             var wetArgs = Array.prototype.slice.call(arguments);
@@ -301,23 +319,43 @@ if (typeof Reflect === 'undefined') {
           // wetShadowTarget = Object.create(dryToWet(dryProto));
           var theType = Object;
           var arg = [];
+          console.log("Not a function, but...");
+          if (dryTarget instanceof Array) {
+              console.log("Encountered Array");
+              theType = Array;
+              arg = dryTarget;
+          }
           if (dryTarget instanceof Number) {
+              console.log("Encountered Number");
               theType = Number;
               arg = [dryTarget];
           }
+          if (dryTarget instanceof Buffer) {
+              console.log("Encountered Buffer");
+              theType = Buffer;
+              arg = [dryTarget];
+          }
           if (dryTarget instanceof Boolean) {
+              console.log("Encountered Boolean");
               theType = Boolean;
               arg = [dryTarget];
           }
           if (dryTarget instanceof String) {
+              console.log("Encountered String");
               theType = String;
               arg = [dryTarget];
           }
           if (dryTarget instanceof Symbol) {
+              console.log("Encountered Symbol");
               theType = Symbol;
           }
           wetShadowTarget = Reflect.construct(theType, arg);
+            console.log("Created object of a type");
+            if (name != undefined && name == "userlala" && dryProto != null && dryProto.constructor != undefined) {
+                console.log("dryProto.constructor.name: %s", dryProto.constructor.name);
+            }
           Reflect.setPrototypeOf(wetShadowTarget, dryToWet(dryProto, false, false, name));
+            console.log("Prototype is now set");
         }
 
         wetToDryWrapper = new Proxy(wetShadowTarget, {
@@ -339,7 +377,6 @@ if (typeof Reflect === 'undefined') {
             return Reflect.getOwnPropertyDescriptor(wetShadowTarget, name);
           },
 
-            /*
           ownKeys: function(wetShadowTarget) {
             console.log("ownkeys");
             let util = require('util');
@@ -361,7 +398,6 @@ if (typeof Reflect === 'undefined') {
             copyAll(dryTarget, wetShadowTarget, dryToWet);
             return Reflect.ownKeys(wetShadowTarget);
           },
-          */
 
           getPrototypeOf: function(wetShadowTarget) {
             let util = require('util');
@@ -385,7 +421,7 @@ if (typeof Reflect === 'undefined') {
             return Reflect.getPrototypeOf(wetShadowTarget);
           },
           setPrototypeOf: function(wetShadowTarget, proto) {
-              // console.log("set prototype of")
+              console.log("set prototype of")
               if (handler.onSetPrototypeOf) {
                   handler.onSetPrototypeOf(wetShadowTarget, proto, dryTarget);
               }
@@ -503,6 +539,9 @@ if (typeof Reflect === 'undefined') {
             if (isConfigurable(dryTarget, name)) {
               // TODO: catch and wrap exceptions thrown from getter?
               let temp = Reflect.get(dryTarget, name, wetToDry(wetReceiver, false, false, name));
+              console.log("The type of the getted thing is %s", typeof temp);
+              console.log("The type of the getted thing is %s", Object.prototype.toString.call(temp));
+              console.log("Is it an array: %s", Array.isArray(temp));
               // console.log(util.inspect(temp, {showProxy: true}));
               if (typeof temp == "function") {
                 ret = dryToWet(temp, false, isModuleItself === true, name);
@@ -535,21 +574,49 @@ if (typeof Reflect === 'undefined') {
           },
 
           set: function(wetShadowTarget, name, val, wetReceiver) {
-            // console.log("set");
+            let util = require('util');
+            console.log("set name %s to value \"%s\"", name, util.inspect(val, {showProxy: true}));
             if (handler.onSet) {
               handler.onSet(wetShadowTarget, name, val, wetReceiver, dryTarget);  
             }
                         
             // no-invariant case:
             if (isConfigurable(dryTarget, name)) {
+              console.log("set: isConfigurable");
               // TODO: catch and wrap exceptions thrown from setter?
-              return dryToWet(Reflect.set(dryTarget, name,
-                                          wetToDry(val, false, false, name), wetToDry(wetReceiver, false, false, name)));
+              // this line below is the culprit. Find out why.
+                // Seems because of missing ownKeys. with ownkeys added, fix Array.isArray(proxied object)
+              let wetValue = wetToDry(val, false, false, name + "lala");// name); 
+                /*
+              if (val != undefined && val.constructor != undefined) {
+                  console.log(val.constructor.name);
+              }
+              if (val != undefined && val.constructor != undefined && val.constructor.name == "model") {
+                  console.log("dryTarget in set: %s", util.inspect(dryTarget, {showProxy: true}));
+                  console.log("wetValue in set: %s", util.inspect(wetValue, {showProxy: true}));
+                  console.log("About to log the email");
+                  console.log("wetValue.email in set: %s", util.inspect(wetValue.email, {showProxy: true}));
+                  console.log("val.email in set: %s", util.inspect(val.email, {showProxy: true}));
+                  console.log("About to log the keys");
+                  console.log("wetValue keys in set: %s", util.inspect(Object.getOwnPropertyNames(wetValue), {showProxy: true}));
+                  console.log("val keys in set: %s", util.inspect(Object.getOwnPropertyNames(val), {showProxy: true}));
+                  console.log("value in set: %s", util.inspect(val, {showProxy: true}));
+              }
+              console.log("After wetToDry of value");
+                */
+              let res = dryToWet(Reflect.set(dryTarget, name, 
+                  wetValue,
+                  wetToDry(wetReceiver, false, false, name)
+                ), false, false, name);
+              console.log("set: result of Reflect.set is %o", res);
+              return res;
             }
             
             // general case:
+            console.log("set: general case");
             copy(dryTarget, wetShadowTarget, name, dryToWet);
             var success = Reflect.set(wetShadowTarget, name, val, wetReceiver);            
+            console.log("set: general case success is %o", success);
             if (success) {
               copy(wetShadowTarget, dryTarget, name, wetToDry);            
             }
@@ -557,7 +624,7 @@ if (typeof Reflect === 'undefined') {
           },
 
           enumerate: function(wetShadowTarget) {
-            // console.log("enumerate");
+            console.log("enumerate");
             if (handler.onEnumerate) {
               handler.onEnumerate(wetShadowTarget, dryTarget);
             }
@@ -571,7 +638,7 @@ if (typeof Reflect === 'undefined') {
           },
 
           keys: function(wetShadowTarget) {
-            // console.log("keys");
+            console.log("keys");
             if (handler.onKeys) {
               handler.onKeys(wetShadowTarget, dryTarget);
             }
@@ -596,7 +663,7 @@ if (typeof Reflect === 'undefined') {
           },
 
           construct: function(wetShadowTarget, wetArgs) {
-            // console.log("construct");
+            console.log("construct");
             if (handler.onConstruct) {
               handler.onConstruct(wetShadowTarget, wetArgs, dryTarget);              
             }

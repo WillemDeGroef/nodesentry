@@ -11,6 +11,8 @@ module.exports.circumference = function (r) {
       return 2 * PI * r;
 };
 
+module.exports.arr = ["a", "b"];
+
 module.exports.test = function () {
     var os = require("os");
     return os.uptime();

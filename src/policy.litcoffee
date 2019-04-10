@@ -77,7 +77,7 @@ The `build` method generates the whole structure of our semantic model of the me
                     .filter(strEqual(fullName))
                 # console.log "onGet name: " + name
                 # console.log "dTgt constructo name: " + dTgt.constructor.name.toString()
-                # console.log "onGet fullName: " + fullName.toString()
+                console.log "onGet fullName: " + fullName.toString()
 
 
                 onRules = relevantRules.filter(areType(OnRule))
