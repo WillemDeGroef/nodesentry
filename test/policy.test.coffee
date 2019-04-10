@@ -21,9 +21,6 @@ describe "Policy", =>
         circle = safe_require "./circle.js", @policy.build()
         circle.numbers.PI.should.approximately 3, 1
         circle.numbers.zero.should.equal 0
-        console.log "NOW"
-        console.log Object.keys(circle.numbers)
-        console.log "DONE"
         circle.numbers.should.have.properties ["PI", "zero"]
 
 

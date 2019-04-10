@@ -56,16 +56,12 @@ exported API call within a membrane.
             @wrapObjectWithMembrane(libName, libexports)
 
         wrapObjectWithMembrane: (libName, obj) ->
-            #_.object(_.map obj, @buildMembraneWrapper libName)
             new Membrane(obj, @policyObj, "#{libName}")
 
         buildMembraneWrapper: (libName) =>
             (propObj, propName) =>
                 type = typeof propObj
                 isPrimitive =  propObj == null || (type != "object" && type != "function")
-                # if isPrimitive
-                #   propObj = Object(propObj)
-                    # console.log propName + " is primitive; type was " + type
                 [propName, new Membrane(propObj, @policyObj, "#{libName}.#{propName}")]
 
     module.exports = WrappedModule

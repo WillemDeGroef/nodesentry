@@ -75,30 +75,18 @@ The `build` method generates the whole structure of our semantic model of the me
 
                 relevantRules = _.chain(@rules)
                     .filter(strEqual(fullName))
-                # console.log "onGet name: " + name
-                # console.log "dTgt constructo name: " + dTgt.constructor.name.toString()
-                console.log "onGet fullName: " + fullName.toString()
 
 
                 onRules = relevantRules.filter(areType(OnRule))
-                # console.log onRules
 
                 onGetValue = onRules.filter(conditionsAreTrue(dTgt, ret))
                     .map(doGetActions(dTgt, ret))
                     .reduce(calcRetValue, ret)
                     .value()
 
-                # if fullName.toString() == "Function.name"
-                #     util = require('util')
-                #     console.log("the onGetValue for the function is %s", util.inspect(onGetValue, {showProxy: true}))
-
                 return onGetValue
 
             @policy.functionCall = (dTgt, dryThis, dryArgs, calcResult, fullName) =>
-                # console.log("functionCall fullname1: %s", fullName)
-                # util = require('util')
-                # console.log("functionCall dryThis is %s", util.inspect(dryThis, {showProxy: true}))
-                # console.log("functionCall dTgt is %s", util.inspect(dTgt, {showProxy: true}))
                 if fullName.indexOf("/") != -1
                     if dryThis != undefined
                         fullName = "#{dryThis.constructor.name}.#{dTgt.name}"
@@ -108,15 +96,11 @@ The `build` method generates the whole structure of our semantic model of the me
                 else if dryThis != undefined and fullName.indexOf(".") == -1
                     fullName = "#{dryThis.constructor.name}." + fullName
                 relevantRules = _.chain(@rules).filter(strEqual(fullName))
-                # console.log("functionCall fullname2: %s", fullName)
-                # console.log("functionCall dryThis is %s", util.inspect(dryThis, {showProxy: true}))
 
 
                 beforeRules = relevantRules.filter(areType(BeforeRule))
                 afterRules = relevantRules.filter(areType(AfterRule))
 
-                # console.log "calcResult before filter"
-                # console.log (util.inspect(calcResult, {showProxy: true}))
                 calcResult = beforeRules.filter(conditionsAreTrue(dTgt, dryArgs))
                     .map(doGetActions(dryThis, dTgt, dryArgs, calcResult))
                     .reduce(calcRetValue, calcResult)
@@ -124,10 +108,6 @@ The `build` method generates the whole structure of our semantic model of the me
 
                 # return as function because the generic membrane will invoke it afterwards
                 ->
-                    # console.log "if this is just before the error..."
-                    # console.log "Information: fullname: %s; dTgt.name: %s; dryThis.constructor.name: %s", fullName, dTgt.name, dryThis.constructor.name
-                    # console.log (util.inspect(calcResult, {showProxy: true}))
-                    # console.log "Doing calcResult now"
                     ret = calcResult()
                     afterRules.filter(conditionsAreTrue(dTgt, ret))
                         .map(doGetActions(dryThis, dTgt, dryArgs, ret))
