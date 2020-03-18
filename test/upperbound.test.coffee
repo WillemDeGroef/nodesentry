@@ -15,7 +15,7 @@ describe "Upper-bound Policies", () =>
 
     it "can add extra HTTP response headers", (done) =>
         p = new Policy()
-            .on("ServerResponse.writeHead")
+            .before("ServerResponse.writeHead")
                 .do((response) -> response.setHeader "X-NodeSentry", "What Else?!")
 
         msg = "Hello World\n"

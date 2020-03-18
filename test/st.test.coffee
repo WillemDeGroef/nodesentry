@@ -13,7 +13,9 @@ describe "`st@0.2.4`", () =>
     @po = new Policy()
             .on "IncomingMessage.url"
                 .return -> "/redirect_to_404_page"
-                .if (incomingMessage, url) -> validUrl url
+                .if ((incomingMessage, url) ->
+                    validUrl url
+                )
                 .build()
 
     beforeEach =>
@@ -47,7 +49,13 @@ describe "`st@0.2.4`", () =>
     it "should be vulnerable", (done) =>
         st = require "../demos/st"
         @server = http.createServer(st(process.cwd())).listen(@port)
-        http.get "http://localhost:#{@port}/../package.json", (res) ->
+        options = {
+            hostname: 'localhost',
+            port: @port,
+            path: '/../package.json',
+            method: 'GET'
+        }
+        http.get options, (res) ->
             res.statusCode.should.equal 200
             done()
 
@@ -76,8 +84,13 @@ describe "`st@0.2.4`", () =>
     it "shouldn't be vulnerable anymore", (done) =>
         st = safe_require "../demos/st", @po
         @server = http.createServer(st(process.cwd())).listen(@port)
-        http.get "http://localhost:#{@port}/../package.json", (res) ->
+
+        options = {
+            hostname: 'localhost',
+            port: @port,
+            path: '/../package.json',
+            method: 'GET'
+        }
+        http.get options, (res) ->
             res.statusCode.should.equal 404
-            res.on "data", (data) ->
-                console.log data.toString()
             done()
