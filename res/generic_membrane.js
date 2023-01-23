@@ -22,6 +22,9 @@
 
 // requires Direct Proxies
 // load('reflect.js') before using
+if (typeof Reflect === 'undefined') {
+    require("harmony-reflect");
+}
  
 (function(exports){
   "use strict";
@@ -51,11 +54,11 @@
       wrappedSrcDesc.enumerable = srcDesc.enumerable;
       wrappedSrcDesc.configurable = srcDesc.configurable;
       if ('value' in srcDesc) {
-        wrappedSrcDesc.value = wrap(srcDesc.value);
+        wrappedSrcDesc.value = wrap(srcDesc.value, false, false, name);
         wrappedSrcDesc.writable = srcDesc.writable;
       } else {
-        wrappedSrcDesc.get = wrap(srcDesc.get);
-        wrappedSrcDesc.set = wrap(srcDesc.set);
+        wrappedSrcDesc.get = wrap(srcDesc.get, false, false, name);
+        wrappedSrcDesc.set = wrap(srcDesc.set, false, false, name);
       }
 
       // Case-analysis, assuming dstDesc = Object.getOwnPropertyDescriptor(dst, name);
@@ -191,11 +194,11 @@
     // on first read, it may help to skip down below to see how this function
     // is used
     var dryToWetMaker =
-      function(dryToWetCache, wetToDryCache, dryToWetRef, wetToDryRef, handler) {
+      function(dryToWetCache, wetToDryCache, dryToWetRef, wetToDryRef, handler, dryorWet) {
 
       // This function is called whenever a dry object crosses the membrane
       // to the wet side. It should convert the dryTarget to its wet counterpart.
-      return function(dryTarget) {
+      return function(dryTarget, isModuleItself, isModuleFunction, name) {
 
         if (Object(dryTarget) !== dryTarget) {
           return dryTarget; // primitives are passed through unwrapped
@@ -203,6 +206,8 @@
         // errors are passed as reconstructed error objects
         if (dryTarget instanceof Error) {
           return new Error(''+dryTarget.message);
+          // use below statement for debugging
+          // return dryTarget;
         }
 
         //Fixed the problem with instanceof Buffer by
@@ -231,28 +236,55 @@
           wetShadowTarget = function wrapper() {
             var wetArgs = Array.prototype.slice.call(arguments);
             var wetThis = this;
-            var dryArgs = wetArgs.map(wetToDry);
-            var dryThis = wetToDry(wetThis);
+            var dryArgs = wetArgs.map(function(x) { return wetToDry(x, false, false, name);});
+            var dryThis = wetToDry(wetThis, false, false, name);
             try {
 
               var dryResult = null;
               var calcResult = function () { return Reflect.apply(dryTarget, dryThis, dryArgs); };
 
               if (handler.functionCall) {
-                  calcResult = handler.functionCall(dryTarget, dryThis, dryArgs, calcResult, membraneName);
+                  calcResult = handler.functionCall(dryTarget, dryThis, dryArgs, calcResult, (isModuleFunction === true ? membraneName + "." + name : name));
               } 
 
               dryResult = calcResult();
-              var wetResult = dryToWet(dryResult);
+              var wetResult = dryToWet(dryResult, false, false, name);
               return wetResult;
             } catch (dryException) {
               // DEBUG: throw dryException;
               throw dryToWet(dryException);
+              // throw dryException;
             }
           };
         } else {
-          var dryProto = Object.getPrototypeOf(dryTarget);
-          wetShadowTarget = Object.create(dryToWet(dryProto));
+          var dryProto = Reflect.getPrototypeOf(dryTarget);
+          var theType = Object;
+          var arg = [];
+          if (dryTarget instanceof Array) {
+              theType = Array;
+              arg = dryTarget;
+          }
+          if (dryTarget instanceof Number) {
+              theType = Number;
+              arg = [dryTarget];
+          }
+          if (dryTarget instanceof Buffer) {
+              theType = Buffer;
+              arg = [dryTarget];
+          }
+          if (dryTarget instanceof Boolean) {
+              theType = Boolean;
+              arg = [dryTarget];
+          }
+          if (dryTarget instanceof String) {
+              theType = String;
+              arg = [dryTarget];
+          }
+          if (dryTarget instanceof Symbol) {
+              theType = Symbol;
+          }
+          wetShadowTarget = Reflect.construct(theType, arg);
+          Reflect.setPrototypeOf(wetShadowTarget, dryToWet(dryProto, false, false, name));
         }
 
         wetToDryWrapper = new Proxy(wetShadowTarget, {
@@ -265,7 +297,7 @@
             // no-invariant case:
             if (Object.isExtensible(wetShadowTarget) &&
                 isConfigurable(dryTarget, name)) {
-              return dryToWet(Reflect.getOwnPropertyDescriptor(dryTarget, name));
+              return dryToWet(Reflect.getOwnPropertyDescriptor(dryTarget, name), false, false, name);
             }
             
             // general case:
@@ -273,19 +305,19 @@
             return Reflect.getOwnPropertyDescriptor(wetShadowTarget, name);
           },
 
-          getOwnPropertyNames: function(wetShadowTarget) {
+          ownKeys: function(wetShadowTarget) {
             if (handler.onGetOwnPropertyNames) {
               handler.onGetOwnPropertyNames(wetShadowTarget, dryTarget);              
             }
-            
+
             // no-invariant case:
             if (Object.isExtensible(wetShadowTarget)) {
-              return Reflect.getOwnPropertyNames(dryTarget);
+              return Reflect.ownKeys(dryTarget);
             }
             
             // general case:
             copyAll(dryTarget, wetShadowTarget, dryToWet);
-            return Reflect.getOwnPropertyNames(wetShadowTarget);
+            return Reflect.ownKeys(wetShadowTarget);
           },
 
           getPrototypeOf: function(wetShadowTarget) {
@@ -297,7 +329,7 @@
             // as it may have changed since wetShadowTarget was first created
             if (({}).__proto__ !== undefined) {
               var dryProto = Object.getPrototypeOf(dryTarget);
-              var wetProto = dryToWet(dryProto);
+              var wetProto = dryToWet(dryProto, false, false, name);
               if (Object.getPrototypeOf(wetShadowTarget) !== wetProto) {
                 // Note: using [[Set]] instead of [[DefineOwnProperty]] by executing:
                 //  wetShadowTarget.__proto__ = ...;
@@ -306,6 +338,11 @@
               }
             }
             return Reflect.getPrototypeOf(wetShadowTarget);
+          },
+          setPrototypeOf: function(wetShadowTarget, proto) {
+              if (handler.onSetPrototypeOf) {
+                  handler.onSetPrototypeOf(wetShadowTarget, proto, dryTarget);
+              }
           },
 
           defineProperty: function(wetShadowTarget, name, wetDesc) {
@@ -316,7 +353,7 @@
             // no-invariant case:
             if (Object.isExtensible(wetShadowTarget) &&
                 wetDesc.configurable === true) {
-              return Reflect.defineProperty(dryTarget, name, wetToDry(wetDesc));    
+              return Reflect.defineProperty(dryTarget, name, wetToDry(wetDesc, false, false, name));    
             }
             
             // general case:
@@ -403,13 +440,17 @@
           },
 
           get: function(wetShadowTarget, name, wetReceiver) {
-            // DEBUG: if (name === "toString") { return dryTarget.toString; }
-
             var ret;            
             // no-invariant case:
             if (isConfigurable(dryTarget, name)) {
               // TODO: catch and wrap exceptions thrown from getter?
-              ret = dryToWet(Reflect.get(dryTarget, name, wetToDry(wetReceiver)));
+              let temp = Reflect.get(dryTarget, name, wetToDry(wetReceiver, false, false, name));
+              if (typeof temp == "function") {
+                ret = dryToWet(temp, false, isModuleItself === true, name);
+              }
+              else {
+                ret = dryToWet(temp, false, false, name);
+              }
             } else {
             
             // general case:
@@ -425,7 +466,7 @@
             }
 
             if (handler.onGet) {
-              return handler.onGet(wetShadowTarget, name, wetReceiver, dryTarget, ret);              
+              return handler.onGet(wetShadowTarget, name, wetReceiver, dryTarget, ret, (isModuleItself ? membraneName + "." + name : undefined));
             } else
               return ret;
           },
@@ -438,8 +479,12 @@
             // no-invariant case:
             if (isConfigurable(dryTarget, name)) {
               // TODO: catch and wrap exceptions thrown from setter?
-              return dryToWet(Reflect.set(dryTarget, name,
-                                          wetToDry(val), wetToDry(wetReceiver)));
+              let wetValue = wetToDry(val, false, false, name);
+              let res = dryToWet(Reflect.set(dryTarget, name, 
+                  wetValue,
+                  wetToDry(wetReceiver, false, false, name)
+                ), false, false, name);
+              return res;
             }
             
             // general case:
@@ -512,15 +557,15 @@
     var wetToDryRef = {val:null};
 
     dryToWetRef.val = dryToWetMaker(dryToWetCache, wetToDryCache,
-                                    dryToWetRef, wetToDryRef, dry2wetHandler);
+                                    dryToWetRef, wetToDryRef, dry2wetHandler, "dryToWet");
     
     // note the reversed order of wetToDry and dryToWet:
     
     wetToDryRef.val = dryToWetMaker(wetToDryCache, dryToWetCache,
-                                    wetToDryRef, dryToWetRef, wet2dryHandler);
+                                    wetToDryRef, dryToWetRef, wet2dryHandler, "wetToDry");
 
     return {
-      target: wetToDryRef.val(initWetTarget),
+      target: wetToDryRef.val(initWetTarget, true, false, membraneName),
     };
   }; // end makeMembrane
   

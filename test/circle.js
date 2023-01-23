@@ -1,5 +1,7 @@
 var PI = Math.PI;
 module.exports.PI = PI;
+module.exports.PI2 = new Number(PI);
+module.exports.numbers = {PI: Math.PI, zero: 0};
 
 module.exports.area = function (r) {
       return PI * r * r;
@@ -8,6 +10,8 @@ module.exports.area = function (r) {
 module.exports.circumference = function (r) {
       return 2 * PI * r;
 };
+
+module.exports.arr = ["a", "b"];
 
 module.exports.test = function () {
     var os = require("os");

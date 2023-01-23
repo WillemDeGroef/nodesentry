@@ -58,39 +58,53 @@ The `build` method generates the whole structure of our semantic model of the me
                         .map (action) -> action.apply(this, [dTgt].concat(args))
                     return rule
 
-            calcRetValue = (origRet, rule) -> rule.ret(origRet)
+            calcRetValue = (origRet, rule) ->
+                rule.ret(origRet)
 
             isEmpty = (l) -> l.size().value() == 0
             isNotFunction = (v) -> typeof v != "function"
 
-            @policy.onGet = (wTgt, name, wRec, dTgt, ret) =>
+            @policy.onGet = (wTgt, name, wRec, dTgt, ret, fullName) =>
                 name = name.toString()
-                fullName = "#{dTgt.constructor.name.toString()}.#{name}"
+                if fullName == undefined
+                    if dTgt.constructor != undefined
+                        fullName = "#{dTgt.constructor.name.toString()}.#{name}"
+                    else
+                        # providing some sort of name
+                        fullName = "Object.#{name}"
+
                 relevantRules = _.chain(@rules)
                     .filter(strEqual(fullName))
 
-                onRules = relevantRules.filter(areType(OnRule))
-                beforeRules = relevantRules.filter(areType(BeforeRule))
-                afterRules = relevantRules.filter(areType(AfterRule))
 
+                onRules = relevantRules.filter(areType(OnRule))
 
                 onGetValue = onRules.filter(conditionsAreTrue(dTgt, ret))
                     .map(doGetActions(dTgt, ret))
                     .reduce(calcRetValue, ret)
                     .value()
 
+                return onGetValue
+
             @policy.functionCall = (dTgt, dryThis, dryArgs, calcResult, fullName) =>
-                if dryThis != undefined and fullName.indexOf("/") != -1
-                    fullName = "#{dryThis.constructor.name}.#{dTgt.name}"
+                if fullName.indexOf("/") != -1
+                    if dryThis != undefined
+                        fullName = "#{dryThis.constructor.name}.#{dTgt.name}"
+                    else
+                        fullName = fullName.substr(fullName.lastIndexOf("/") + 1).replace(".js","")
+                        fullName = "#{fullName}.#{dTgt.name}"
+                else if dryThis != undefined and fullName.indexOf(".") == -1
+                    fullName = "#{dryThis.constructor.name}." + fullName
                 relevantRules = _.chain(@rules).filter(strEqual(fullName))
+
 
                 beforeRules = relevantRules.filter(areType(BeforeRule))
                 afterRules = relevantRules.filter(areType(AfterRule))
 
                 calcResult = beforeRules.filter(conditionsAreTrue(dTgt, dryArgs))
-                       .map(doGetActions(dryThis, dTgt, dryArgs, calcResult))
-                       .reduce(calcRetValue, calcResult)
-                       .value()
+                    .map(doGetActions(dryThis, dTgt, dryArgs, calcResult))
+                    .reduce(calcRetValue, calcResult)
+                    .value()
 
                 # return as function because the generic membrane will invoke it afterwards
                 ->

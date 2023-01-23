@@ -13,10 +13,38 @@ describe "Policy", =>
         p.wrapWithMembrane("bleh").should.be.false
         p.onGet({}, "", {}, {}, 1234).should.equal 1234
 
-    it "should modify return values", =>
-        @policy.on("PI").return((origPI) -> 3*origPI)
-        circle = require "./circle.js", @policy.build()
-        circle.PI.should.approximately 3, 1
+    it "should make sure Arrays are still arrays", =>
+        circle = safe_require "./circle.js", @policy.build()
+        Array.isArray(circle.arr).should.equal true
+
+    it "should work for objects containing numbers", =>
+        circle = safe_require "./circle.js", @policy.build()
+        circle.numbers.PI.should.approximately 3, 1
+        circle.numbers.zero.should.equal 0
+        circle.numbers.should.have.properties ["PI", "zero"]
+
+
+
+    it "should modify return values for Numbers", =>
+        @policy.on("circle.PI2").return((origPI) -> 3*origPI)
+        circle = safe_require "./circle.js", @policy.build()
+        circle.PI2.should.approximately 9, 1
+        (circle.PI2 + 1).should.approximately 10, 1
+
+    it "should modify return values for primitives", =>
+        @policy.on("circle.PI").return((origPI) -> 3*origPI)
+        circle = safe_require "./circle.js", @policy.build()
+        # Force Number.valueOf()
+        circle.PI.should.approximately 9, 1
+
+    it "should modify return values for functions", =>
+        side = 0
+        util = require('util')
+        @policy.on("circle.area").return((origArea) -> ((val) -> side = val; 2*origArea(val)))
+        circle = safe_require "./circle.js", @policy.build()
+        ans = circle.area(1)
+        ans.should.approximately 6, 1
+        side.should.equal 1
 
     it "should modify return values of functions", =>
         @policy.after("circle.area").return((r) -> 2*r)
@@ -41,7 +69,7 @@ describe "Policy", =>
     it "should call external functions", (done) =>
         beenHereBefore = false
         @policy.before("circle.area").do(-> beenHereBefore = true)
-               .after("circle.area").do(-> done() if beenHereBefore)
+        .after("circle.area").do(-> done() if beenHereBefore)
         circle = safe_require "./circle.js", @policy.build()
         circle.area(1).should.be.approximately 3, 1
 
@@ -67,3 +95,14 @@ describe "Policy", =>
 
         circle = safe_require "./circle.js", @policy.build()
         circle.area(1).should.be.approximately 3, 1
+    it "should repeat do for every call", (done) =>
+        val = 0
+        @policy
+            .before("circle.test").do(-> val += 1)
+        circle = safe_require "./circle.js", @policy.build()
+        pang = circle.test
+        pang()
+        pang()
+        val.should.be.equal 2
+        done()
+
